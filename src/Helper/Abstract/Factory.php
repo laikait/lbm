@@ -30,13 +30,19 @@ abstract class Factory
         if (isset($data['status'])) {
             $status = $model->first(['status' => $data['status']]);
             $data['status_color'] = $status['color'] ?? '#000000';
-            $data['created'] = apply_filter('date.show', $data['created']);
+            $data['created'] = apply_filter('showdate', $data['created']);
+            if (isset($data['updated'])) {
+                $data['updated'] = apply_filter('showdate', $data['updated']);
+            }
             return $data;
         } else {
             foreach ($data as $key => $val) {
                 $status = $model->first(['status' => $val['status']]);
                 $data[$key]['status_color'] = $status['color'] ?? '#000000';
-                $data[$key]['created'] = apply_filter('date.show', $val['created']);
+                $data[$key]['created'] = apply_filter('showdate', $val['created']);
+                if (isset($val['updated'])) {
+                    $data[$key]['created'] = apply_filter('showdate', $val['updated']);
+                }
             }
             return $data;
         }

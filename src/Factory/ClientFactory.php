@@ -64,7 +64,7 @@ class ClientFactory extends Factory
             $where = ['username'=>$search,'email'=>$search,'status'=>$search,'fname'=>$search,'lname'=>$search];
             $clients = $model->find($where, 'LIKE');
         } else {
-            $clients = $model->limit(where:self::queries());
+            $clients = $model->limit((int) Request::instance()->input('page'), self::queries());
         }
         // Set Status Color And Format Date
         return self::colorAndDate($clients, new ClientStatusModel());
@@ -89,7 +89,7 @@ class ClientFactory extends Factory
         return self::colorAndDate($client, new ClientStatusModel());
     }
 
-    public static function count(string $column = null, array $where = [], string $operator = '=', string $compare = 'AND'): int
+    public static function count(?string $column = null, array $where = [], string $operator = '=', string $compare = 'AND'): int
     {
         $model = new ClientModel;
         return $model->count($column, $where, $operator, $compare);
