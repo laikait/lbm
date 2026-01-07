@@ -1,17 +1,21 @@
 {
-    "name": "cb-master/cbm",
-    "description": "Cloud Bill Master Main Repo",
+    "name": "laikait/lbm",
+    "description": "Laika Bill Manager",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "CBM\\": "src/"
+            "LBM\\": "src/"
         }
     },
     "authors": [
         {
-            "name": "cb-master",
+            "name": "Laika IT",
             "email": "strblackhawk@gmail.com"
+        },
+        {
+            "name": "Showket Ahmed",
+            "email": "riyadhtayf@gmail.com"
         }
     ],
     "minimum-stability": "stable",
