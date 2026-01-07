@@ -17,13 +17,13 @@ namespace LBM\Factory;
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
 use Laika\Core\Http\Request;
-use Laika\App\Model\Client;
+use Laika\App\Model\Staff;
 use LBM\Abstract\Factory;
 
 /*-------------- NOT USING ----------------*/
-class ClientFactory extends Factory
+class StaffFactory extends Factory
 {
-    private static string $columns = 'id, uuid, fname, lname, companyname, username, email, status, country, created';
+    private static string $columns = 'id, uuid, role, fname, lname, username, email, status';
 
     // Accepted Queries
     protected static array $accepted = ['id', 'status', 'uuid','email', 'username', 'emailstatus', 'country'];
@@ -50,7 +50,7 @@ class ClientFactory extends Factory
     {
         $columns = $columns ?: self::$columns;
         $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Client;
+        $model = new Staff;
         return $model->rows(self::queries(), $columns, page:$page)
                     ->status('ClientStatus', 'status,entity')
                     ->result();
@@ -61,9 +61,9 @@ class ClientFactory extends Factory
         $columns = $columns ?: self::$columns;
         $queries = self::queries();
         $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Client;
+        $model = new Staff;
         return $model->rows($queries, $columns, compare:'OR', page:$page)
-                    ->status('ClientStatus', 'status,entity')
+                    ->status('StaffStatus', 'status,entity')
                     ->result();
     }
 
@@ -82,12 +82,12 @@ class ClientFactory extends Factory
             'email'     =>  $entity
         ];
 
-        return (new Client)->row($where, $columns)->status('ClientStatus', 'status,entity')->result();
+        return (new Staff)->row($where, $columns)->status('ClientStatus', 'status,entity')->result();
     }
 
     public static function count(array $where = [], string $operator = '=', string $compare = 'AND'): int
     {
-        $model = new Client;
+        $model = new Staff;
         return $model->select($model->id)->where($where, $operator, $compare)->count();
     }
 }

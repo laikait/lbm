@@ -6,7 +6,11 @@
     "autoload": {
         "psr-4": {
             "LBM\\": "src/"
-        }
+        },
+        "files": [
+            "helpers/functions.php",
+            "helpers/hooks.php"
+        ]
     },
     "authors": [
         {
