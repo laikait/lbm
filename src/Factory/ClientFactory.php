@@ -18,76 +18,73 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 
 use Laika\Core\Http\Request;
 use Laika\App\Model\Client;
-use LBM\Abstract\Factory;
 
-/*-------------- NOT USING ----------------*/
-class ClientFactory extends Factory
+class ClientFactory
 {
-    private static string $columns = 'id, uuid, fname, lname, companyname, username, email, status, country, created';
-
-    // Accepted Queries
-    protected static array $accepted = ['id', 'status', 'uuid','email', 'username', 'emailstatus', 'country'];
+    /**
+     * @var Client $model
+     */
+    private Client $model;
 
     /**
-     * Get Accepted & Exists Queries
+     * Initiate Client Factory
+     */
+    public function __construct()
+    {
+        $this->model = new Client();
+    }
+
+    /**
+     * Get Single Client
      * @return array
      */
-    public static function queries(): array
+    public function single(int|string $client): array
     {
-        $queries = [];
-        $inputs = call_user_func([new Request, 'inputs']);
+        $client = htmlspecialchars($client);
+        $where = [
+            'id'        =>  $client,
+            'uuid'      =>  $client,
+            'username'  =>  $client,
+            'email'     =>  $client
+        ];
+        return $this->model->row($where, '=', 'OR')->status()->result();
+    }
 
-        array_filter($inputs, function($v, $k) use ($queries){
-            if (in_array($k, self::$accepted)) {
+    /**
+     * Get Limit Clients
+     */
+    public function limit(): array
+    {
+        // Get Page Number
+        $page = call_user_func([new Request, 'input'], 'page', 1);
+        return $this->model->rows($this->queries(), page:$page)->status()->result();
+    }
+
+    /**
+     * Find Clients
+     */
+    public function find(): array
+    {
+        // Get Page Number
+        return $this->model->rows($this->queries())->status()->result();
+    }
+
+    /*============================ INTERNAL API ============================*/
+    /**
+     * Match Database Columns with Queries
+     * @return array
+     */
+    private function queries()
+    {
+        $accepted = ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname'];
+        $queries = [];
+        $inputs = call_user_func([new Request(), 'inputs']);
+        // Get Accepted Query Values
+        foreach($inputs as $k => $v) {
+            if (in_array($k, $accepted)) {
                 $queries[$k] = $v;
             }
-        }, ARRAY_FILTER_USE_BOTH);
-
+        }
         return $queries;
-    }
-
-    public static function get(?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Client;
-        return $model->rows(self::queries(), $columns, page:$page)
-                    ->status('ClientStatus', 'status,entity')
-                    ->result();
-    }
-
-    public static function search(?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $queries = self::queries();
-        $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Client;
-        return $model->rows($queries, $columns, compare:'OR', page:$page)
-                    ->status('ClientStatus', 'status,entity')
-                    ->result();
-    }
-
-    public static function update(array $where, array $data): int
-    {
-        return 1;
-    }
-
-    public static function first(int|string $entity, ?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $where = [
-            'id'        =>  $entity,
-            'uuid'      =>  $entity,
-            'username'  =>  $entity,
-            'email'     =>  $entity
-        ];
-
-        return (new Client)->row($where, $columns)->status('ClientStatus', 'status,entity')->result();
-    }
-
-    public static function count(array $where = [], string $operator = '=', string $compare = 'AND'): int
-    {
-        $model = new Client;
-        return $model->select($model->id)->where($where, $operator, $compare)->count();
     }
 }

@@ -18,76 +18,73 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 
 use Laika\Core\Http\Request;
 use Laika\App\Model\Staff;
-use LBM\Abstract\Factory;
 
-/*-------------- NOT USING ----------------*/
-class StaffFactory extends Factory
+class StaffFactory
 {
-    private static string $columns = 'id, uuid, role, fname, lname, username, email, status';
-
-    // Accepted Queries
-    protected static array $accepted = ['id', 'status', 'uuid','email', 'username', 'emailstatus', 'country'];
+    /**
+     * @var Staff $model
+     */
+    private Staff $model;
 
     /**
-     * Get Accepted & Exists Queries
+     * Initiate Client Factory
+     */
+    public function __construct()
+    {
+        $this->model = new Staff();
+    }
+
+    /**
+     * Get Single Staff
      * @return array
      */
-    public static function queries(): array
+    public function single(int|string $staff): array
     {
-        $queries = [];
-        $inputs = call_user_func([new Request, 'inputs']);
+        $staff = htmlspecialchars($staff);
+        $where = [
+            'id'        =>  $staff,
+            'uuid'      =>  $staff,
+            'username'  =>  $staff,
+            'email'     =>  $staff
+        ];
+        return $this->model->row($where, '=', 'OR')->status()->role()->result();
+    }
 
-        array_filter($inputs, function($v, $k) use ($queries){
-            if (in_array($k, self::$accepted)) {
+    /**
+     * Get Limit Staffs
+     */
+    public function limit(): array
+    {
+        // Get Page Number
+        $page = call_user_func([new Request, 'input'], 'page', 1);
+        return $this->model->rows($this->queries(), page:$page)->status()->role()->result();
+    }
+
+    /**
+     * Find Staffs
+     */
+    public function find(): array
+    {
+        // Get Page Number
+        return $this->model->rows($this->queries())->status()->role()->result();
+    }
+
+    /*============================ INTERNAL API ============================*/
+    /**
+     * Match Database Columns with Queries
+     * @return array
+     */
+    private function queries()
+    {
+        $accepted = ['role', 'fname', 'lname', 'username', 'email', 'status'];
+        $queries = [];
+        $inputs = call_user_func([new Request(), 'inputs']);
+        // Get Accepted Query Values
+        foreach($inputs as $k => $v) {
+            if (in_array($k, $accepted)) {
                 $queries[$k] = $v;
             }
-        }, ARRAY_FILTER_USE_BOTH);
-
+        }
         return $queries;
-    }
-
-    public static function get(?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Staff;
-        return $model->rows(self::queries(), $columns, page:$page)
-                    ->status('ClientStatus', 'status,entity')
-                    ->result();
-    }
-
-    public static function search(?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $queries = self::queries();
-        $page = call_user_func([new Request, 'input'], 'page', 1);
-        $model = new Staff;
-        return $model->rows($queries, $columns, compare:'OR', page:$page)
-                    ->status('StaffStatus', 'status,entity')
-                    ->result();
-    }
-
-    public static function update(array $where, array $data): int
-    {
-        return 1;
-    }
-
-    public static function first(int|string $entity, ?string $columns = null): array
-    {
-        $columns = $columns ?: self::$columns;
-        $where = [
-            'id'        =>  $entity,
-            'uuid'      =>  $entity,
-            'username'  =>  $entity,
-            'email'     =>  $entity
-        ];
-
-        return (new Staff)->row($where, $columns)->status('ClientStatus', 'status,entity')->result();
-    }
-
-    public static function count(array $where = [], string $operator = '=', string $compare = 'AND'): int
-    {
-        $model = new Staff;
-        return $model->select($model->id)->where($where, $operator, $compare)->count();
     }
 }
