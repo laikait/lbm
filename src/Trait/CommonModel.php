@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace LBM\Trait;
 
+use InvalidArgumentException;
+
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
@@ -26,33 +28,28 @@ trait CommonModel
     /**
      * Get Rows
      * @param array $where Where Array to Get Rows. Example: ['id'=>1]
-     * @param ?string $columns Table columns. Example: 'id,uuid,username'
      * @param string $operator Where Clause Operator. Example: '='
      * @param string $compare Where Clause Compare. Example: 'AND'
      * @param int|string $page Page Number. Default is 1
-     * @param bool $limit Get Limit Data. Default is true
+     * @param int|string $limit DB Rows Limit. Default is 20
+     * @param ?string $columns Table columns. Example: 'id,uuid,username'
      * @return self
      */
     public function rows(
         array $where = [],
-        ?string $columns = null,
         string $operator = '=',
         string $compare = 'AND',
         int|string $page = 1,
-        bool $limit = true
+        int|string|null $limit = null,
+        ?string $columns = null
     ): self
     {
         $limit = \do_hook('option', 'data.limit', 20);
-        $model = $this->select($columns)
-                            ->where($where, $operator, $compare);
-        if ($limit) {
-            $model = $model->limit($limit)->offset($page);
+        $model = $this->select($columns)->where($where, $operator, $compare);
+        if ($limit !== null) {
+            $model = $model->limit((int) $limit)->offset($page);
         }
-        $this->result = $this->select($columns)
-                            ->where($where, $operator, $compare)
-                            ->limit($limit)
-                            ->offset($page)
-                            ->get();
+        $this->result = $model->get();
         return $this;
     }
 
@@ -131,6 +128,71 @@ trait CommonModel
             }
         }
         return $this;
+    }
+
+    /**
+     * Get Address
+     * @param string $type Usedr Type. Example: 'staff' or 'client'
+     * @return self
+     */
+    public function address(string $type): self
+    {
+        // Check Type is Valid
+        $type = strtolower($type);
+        if (!in_array($type, ['staff', 'client'])) {
+            throw new InvalidArgumentException("Invalid Type Argument: [{$type}]");
+        }
+
+        // Check Result is Not Empty
+        if (empty($this->result)) {
+            return $this;
+        }
+
+        // Get Address Model
+        $obj = new \Laika\App\Model\Address();
+
+        // Set Status
+        if (isset($this->result[$this->id])) {
+            $where = ['relid' => $this->result[$this->id], 'type' => $type, 'profile_default' => 'yes'];
+            $this->result['address'] = $obj->where($where)->first();
+        } elseif (isset($this->result[0][$this->id])) {
+            foreach ($this->result as $k => $v) {
+                $where = ['relid' => $this->result[$k][$this->id], 'type' => $type, 'profile_default' => 'yes'];
+                $this->result[$k]['address'] = $obj->where($where)->first();
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Get Statuses
+     * @return array
+     */
+    public function statuses(): array
+    {
+        $class = __CLASS__ . 'Status';
+        if (!class_exists($class)) {
+            return [];
+        }
+        $model = new $class;
+        $statuses = $model->select('entity,color')->get();
+        return array_column($statuses, 'color', 'entity');
+    }
+
+    /**
+     * Get Notes
+     * @return array
+     */
+    public function relatedNotes(int|string $id): array
+    {
+        $class = __CLASS__ . 'Note';
+        if (!class_exists($class)) {
+            return [];
+        }
+        // Get Limit
+        $limit = \do_hook('option', 'data.limit', 20);
+        $model = new $class;
+        return $model->where(['relid' => $id], '=', 'OR')->limit($limit)->order($model->id, 'DESC')->get();
     }
 
     /**

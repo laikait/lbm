@@ -16,4 +16,18 @@ declare(strict_types=1);
 array_map(function($file)
 {
     require_once $file;
-}, glob(__DIR__ . '/functions/*.func.php'));
+}, glob(__DIR__ . '/Functions/*.func.php'));
+
+// Require All Hooks File
+array_map(function($file)
+{
+    require_once $file;
+}, glob(__DIR__ . '/Hooks/*.hook.php'));
+
+// Require All Routes
+array_map(function($file)
+{
+    require_once $file;
+}, glob(__DIR__ . '/Routes/*.route.php'));
+
+echo 'dsdssd';die;

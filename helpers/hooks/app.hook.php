@@ -19,10 +19,10 @@ use LBM\Factory\Option;
 /**
  * Get App DB Option
  * @param string $key DB Option lkey Name
- * @param string $default Option Default Value
+ * @param mixed $default Option Default Value
  * @return string
  */
-add_hook('option', function(string $key, string $default = ''){
+add_hook('option', function(string $key, mixed $default = ''){
     return Option::get($key, Config::get('env', $key, $default));
 }, 1000);
 
@@ -58,7 +58,7 @@ add_hook('app.logo', function(?string $key = null): string {
 /**
  * Panel Info
  */
-add_hook('app.panel', function(){
+add_hook('panel', function(){
     $arr = [
         'admin' =>  [
             'url'  =>  do_hook('app.host') . ADMIN
@@ -88,3 +88,14 @@ add_hook('message.get', function(): string {
     }
     return "<div id=\"app-error-message\">{$m['info']}</div>";
 }, 1000);
+
+/*============================= FORM HOOKS =============================*/
+/**
+ * Option is Selected
+ * @param string $name Request Key Name
+ * @param string $value Option Value
+ * @return string
+ */
+add_hook('selected', function(string $name, string $value): string{
+    return (do_hook('request.input', $name) == $value) ? 'selected' : '';
+});

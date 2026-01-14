@@ -27,6 +27,12 @@ class ClientFactory
     private Client $model;
 
     /**
+     * Total Rows
+     * @var int $total
+     */
+    private int $total;
+
+    /**
      * Initiate Client Factory
      */
     public function __construct()
@@ -47,7 +53,7 @@ class ClientFactory
             'username'  =>  $client,
             'email'     =>  $client
         ];
-        return $this->model->row($where, '=', 'OR')->status()->result();
+        return $this->model->row($where, '=', 'OR')->status()->address('client')->result();
     }
 
     /**
@@ -57,16 +63,47 @@ class ClientFactory
     {
         // Get Page Number
         $page = call_user_func([new Request, 'input'], 'page', 1);
-        return $this->model->rows($this->queries(), page:$page)->status()->result();
+        // Get Input
+        $input = \do_hook('request.input', 'client');
+        // Get Model Object
+        $model = $this->model;
+        // Get Model Object for Total Client
+        $total = (new Client)->select($this->model->id);
+        if (!empty($input)) {
+            $input = "^{$input}";
+            $where = [
+                'fname' => $input,
+                'lname' => $input,
+                'username' => $input,
+                'email' => $input,
+                'status' => $input,
+                'country' => $input,
+                'companyname' => $input
+            ];
+            // Extend Client Model
+            $model = $model->rows($where, 'REGEXP', 'OR', page:$page);
+            // Extend Total Client Model
+            $total = $total->where($where, 'REGEXP', 'OR');
+        } else {
+            // Extend Client Model
+            $model = $model->rows($this->queries(), page:$page);
+            // Extend Total Client Model
+            $total = $total->where($this->queries());
+        }
+
+        // Set Total Client
+        $this->total = $total->count();
+        // Return Result
+        return $model->status()->address('client')->result();
     }
 
     /**
-     * Find Clients
+     * Get Total Client
+     * @return int
      */
-    public function find(): array
+    public function total(): int
     {
-        // Get Page Number
-        return $this->model->rows($this->queries())->status()->result();
+        return $this->total ?? 0;
     }
 
     /*============================ INTERNAL API ============================*/
@@ -78,7 +115,7 @@ class ClientFactory
     {
         $accepted = ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname'];
         $queries = [];
-        $inputs = call_user_func([new Request(), 'inputs']);
+        $inputs = \do_hook('request.inputs');
         // Get Accepted Query Values
         foreach($inputs as $k => $v) {
             if (in_array($k, $accepted)) {
