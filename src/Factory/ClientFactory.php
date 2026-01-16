@@ -18,8 +18,9 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 
 use Laika\Core\Http\Request;
 use Laika\App\Model\Client;
+use LBM\Abstract\Factory;
 
-class ClientFactory
+class ClientFactory extends Factory
 {
     /**
      * @var Client $model
@@ -42,16 +43,17 @@ class ClientFactory
 
     /**
      * Get Single Client
+     * @param int|string $entity Entity to Get Value.
      * @return array
      */
-    public function single(int|string $client): array
+    public function first(int|string $entity): array
     {
-        $client = htmlspecialchars($client);
+        $entity = \htmlspecialchars($entity);
         $where = [
-            'id'        =>  $client,
-            'uuid'      =>  $client,
-            'username'  =>  $client,
-            'email'     =>  $client
+            'id'        =>  $entity,
+            'uuid'      =>  $entity,
+            'username'  =>  $entity,
+            'email'     =>  $entity
         ];
         return $this->model->row($where, '=', 'OR')->status()->address('client')->result();
     }
@@ -62,7 +64,7 @@ class ClientFactory
     public function limit(): array
     {
         // Get Page Number
-        $page = call_user_func([new Request, 'input'], 'page', 1);
+        $page = \call_user_func([new Request, 'input'], 'page', 1);
         // Get Input
         $input = \do_hook('request.input', 'client');
         // Get Model Object
@@ -94,7 +96,7 @@ class ClientFactory
         // Set Total Client
         $this->total = $total->count();
         // Return Result
-        return $model->status()->address('client')->result();
+        return $model->status()->result();
     }
 
     /**

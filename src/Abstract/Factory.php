@@ -21,28 +21,13 @@ abstract class Factory
     /**
      * Get Row by Request
      * @param int|string $entity Entity to Get Value.
-     * @param ?string $columns Columns for Select Query. Default is null.
      * @return array
      */
-    abstract public static function first(int|string $entity, ?string $columns = null): array;
+    abstract public function first(int|string $entity): array;
 
     /**
      * Get Rows by Request
-     * @param ?string $columns Columns for Select Query. Default is null.
      * @return array
      */
-    abstract public static function get(?string $columns = null): array;
-
-    /**
-     * Search Rows by Request
-     * @param ?string $columns Columns for Select Query. Default is null.
-     * @return array
-     */
-    abstract public static function search(?string $columns = null): array;
-
-    /**
-     * @param array $where
-     * @param array $data Data to Update
-     */
-    abstract public static function update(array $where, array $data): int;
+    abstract public function limit(): array;
 }

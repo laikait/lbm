@@ -1,19 +1,8 @@
 <?php
 
-/**
- * Laika Framework
- * Author: Showket Ahmed
- * Email: riyadhtayf@gmail.com
- * License: MIT
- * This file is part of the Laika Framework.
- * For the full copyright and license information, please view the LICENSE file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace LBM\Trait;
-
-use InvalidArgumentException;
 
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
@@ -131,41 +120,7 @@ trait CommonModel
     }
 
     /**
-     * Get Address
-     * @param string $type Usedr Type. Example: 'staff' or 'client'
-     * @return self
-     */
-    public function address(string $type): self
-    {
-        // Check Type is Valid
-        $type = strtolower($type);
-        if (!in_array($type, ['staff', 'client'])) {
-            throw new InvalidArgumentException("Invalid Type Argument: [{$type}]");
-        }
-
-        // Check Result is Not Empty
-        if (empty($this->result)) {
-            return $this;
-        }
-
-        // Get Address Model
-        $obj = new \Laika\App\Model\Address();
-
-        // Set Status
-        if (isset($this->result[$this->id])) {
-            $where = ['relid' => $this->result[$this->id], 'type' => $type, 'profile_default' => 'yes'];
-            $this->result['address'] = $obj->where($where)->first();
-        } elseif (isset($this->result[0][$this->id])) {
-            foreach ($this->result as $k => $v) {
-                $where = ['relid' => $this->result[$k][$this->id], 'type' => $type, 'profile_default' => 'yes'];
-                $this->result[$k]['address'] = $obj->where($where)->first();
-            }
-        }
-        return $this;
-    }
-
-    /**
-     * Get Statuses
+     * Get Statuses With Colors
      * @return array
      */
     public function statuses(): array
@@ -179,21 +134,20 @@ trait CommonModel
         return array_column($statuses, 'color', 'entity');
     }
 
-    /**
-     * Get Notes
-     * @return array
-     */
-    public function relatedNotes(int|string $id): array
-    {
-        $class = __CLASS__ . 'Note';
-        if (!class_exists($class)) {
-            return [];
-        }
-        // Get Limit
-        $limit = \do_hook('option', 'data.limit', 20);
-        $model = new $class;
-        return $model->where(['relid' => $id], '=', 'OR')->limit($limit)->order($model->id, 'DESC')->get();
-    }
+    // /**
+    //  * Get Notes
+    //  * @return array
+    //  */
+    // public function relatedNotes(int|string $id): array
+    // {
+    //     $class = __CLASS__ . 'Note';
+    //     if (!class_exists($class)) {
+    //         return [];
+    //     }
+    //     // Get Limit
+    //     $model = new $class;
+    //     return $model->where(['relid' => $id])->order($model->id, 'DESC')->get();
+    // }
 
     /**
      * Get Result
