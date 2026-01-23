@@ -15,30 +15,46 @@ trait CommonModel
     protected mixed $result = null;
 
     /**
+     * @var bool $status
+     */
+    protected bool $status = false;
+
+    /**
+     * @var ?string $select
+     */
+    protected ?string $select = null;
+
+    /**
+     * @param ?string $select
+     * @return self
+     */
+    public function columns(?string $select = null)
+    {
+        $this->select = $select;
+        return $this;
+    }
+
+    /**
      * Get Rows
      * @param array $where Where Array to Get Rows. Example: ['id'=>1]
      * @param string $operator Where Clause Operator. Example: '='
      * @param string $compare Where Clause Compare. Example: 'AND'
      * @param int|string $page Page Number. Default is 1
-     * @param int|string $limit DB Rows Limit. Default is 20
-     * @param ?string $columns Table columns. Example: 'id,uuid,username'
      * @return self
      */
     public function rows(
         array $where = [],
         string $operator = '=',
         string $compare = 'AND',
-        int|string $page = 1,
-        int|string|null $limit = null,
-        ?string $columns = null
+        int|string $page = 1
     ): self
     {
         $limit = \do_hook('option', 'data.limit', 20);
-        $model = $this->select($columns)->where($where, $operator, $compare);
-        if ($limit !== null) {
-            $model = $model->limit((int) $limit)->offset($page);
-        }
-        $this->result = $model->get();
+        $this->result = $this->select($this->select)
+                            ->where($where, $operator, $compare)
+                            ->limit((int) $limit)
+                            ->offset($page)
+                            ->get();
         return $this;
     }
 
@@ -49,7 +65,6 @@ trait CommonModel
      * @param string $compare Where Clause Compare. Example: 'AND'
      * @param string $by Order By Column Name. Example: 'id'
      * @param string $order Order Type. Accepted: 'ASC/DESC'
-     * @param ?string $columns Table columns. Example: 'id,uuid,username'
      * @return self
      */
     public function rowsByOrder(
@@ -57,12 +72,11 @@ trait CommonModel
         string $operator = '=',
         string $compare = 'AND',
         string $by = 'id',
-        string $order = 'ASC',
-        ?string $columns = null
+        string $order = 'ASC'
     ): self
     {
         $limit = \do_hook('option', 'page.limit', 20);
-        $this->result = $this->select($columns)
+        $this->result = $this->select($this->select)
                             ->where($where, $operator, $compare)
                             ->limit($limit)
                             ->orderBy($by, $order)
@@ -75,47 +89,25 @@ trait CommonModel
      * @param array $where Where Array. Example: ['id' => 1, 'uuid' => 'uuid-sdfa-sdffsff-ewrf34']
      * @param string $operator Where Clause Operator. Example: '='
      * @param string $compare Where Clause Compare. Example: 'AND'
-     * @param ?string $columns Table columns. Example: 'id,uuid,username'
      * @return self
      */
     public function row(
         array $where,
         string $operator = '=',
-        string $compare = 'AND',
-        ?string $columns = null
+        string $compare = 'AND'
     ): self
     {
-        $this->result = $this->select($columns)->where($where, $operator, $compare)->first();
+        $this->result = $this->select($this->select)->where($where, $operator, $compare)->first();
         return $this;
     }
 
     /**
      * Get Status
-     * @param ?string $columns Table columns. Example: 'entity,color'
      * @return self
      */
-    public function status(?string $columns = null): self
+    public function status(): self
     {
-        if (empty($this->result)) {
-            return $this;
-        }
-
-        // Get Status Model
-        $class = __CLASS__ . 'Status';
-        if (!class_exists($class)) {
-            return $this;
-        }
-        $obj = new $class();
-
-        // Set Status
-        $columns = $columns ?: 'entity, color';
-        if (isset($this->result['status'])) {
-            $this->result['status'] = $obj->select($columns)->where(['entity' => $this->result['status']])->first();
-        } elseif (isset($this->result[0]['status'])) {
-            foreach ($this->result as $k => $v) {
-                $this->result[$k]['status'] = $obj->select($columns)->where(['entity' => $this->result[$k]['status']])->first();
-            }
-        }
+        $this->status = true;
         return $this;
     }
 
@@ -130,24 +122,13 @@ trait CommonModel
             return [];
         }
         $model = new $class;
-        $statuses = $model->select('entity,color')->get();
+        $this->select = $this->select ?: 'entity,color';
+        // Get Statuses
+        $statuses = $model->select($this->select)->get();
+        // Reset Trait
+        $this->resetTrait();
         return array_column($statuses, 'color', 'entity');
     }
-
-    // /**
-    //  * Get Notes
-    //  * @return array
-    //  */
-    // public function relatedNotes(int|string $id): array
-    // {
-    //     $class = __CLASS__ . 'Note';
-    //     if (!class_exists($class)) {
-    //         return [];
-    //     }
-    //     // Get Limit
-    //     $model = new $class;
-    //     return $model->where(['relid' => $id])->order($model->id, 'DESC')->get();
-    // }
 
     /**
      * Get Result
@@ -155,8 +136,60 @@ trait CommonModel
      */
     public function result()
     {
+        // Check Empty
+        if (empty($this->result)) {
+            $this->resetTrait();
+            return [];
+        }
+
         $result = $this->result;
-        $this->result = null;
+        // Check Status Required
+        if ($this->status) {
+            $result = $this->statusRelation($result);
+        }
+        $this->resetTrait();
         return $result;
+    }
+
+    /* ====================================================================================== */
+    /**
+     * Make Status Relation
+     * @return array
+     */
+    private function statusRelation(array $result): array
+    {
+        // Get Status Model
+        $statuses = $this->statuses();
+
+        // Set Status
+        if (isset($result['status'])) {
+            if (array_key_exists($result['status'], $statuses)) {
+                $status = ['entity' => $result['status'], 'color' => $statuses[$result['status']]];
+            } else {
+                $status = ['entity' => $result['status'], 'color' => '#000000'];
+            }
+            $result['status'] = $status;
+        } elseif (isset($result[0]['status'])) {
+            foreach ($result as $k => $v) {
+                if (array_key_exists($result[$k]['status'], $statuses)) {
+                    $status = ['entity' => $result[$k]['status'], 'color' => $statuses[$result[$k]['status']]];
+                } else {
+                    $status = ['entity' => $result[$k]['status'], 'color' => '#000000'];
+                }
+                $result[$k]['status'] = $status;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Reset Model
+     * @return void
+     */
+    private function resetTrait(): void
+    {
+        $this->result = null;
+        $this->status = false;
+        $this->select = null;
     }
 }
