@@ -7,17 +7,14 @@ namespace LBM\Trait;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
+use Laika\App\model\Address;
+
 trait CommonModel
 {
     /**
      * @var mixed $result
      */
     protected mixed $result = null;
-
-    /**
-     * @var bool $status
-     */
-    protected bool $status = false;
 
     /**
      * @var ?string $select
@@ -107,7 +104,18 @@ trait CommonModel
      */
     public function status(): self
     {
-        $this->status = true;
+        $this->result = $this->assignStatus();
+        return $this;
+    }
+
+    /**
+     * Get Address
+     * @param string $type Address Type. Accepted: 'client' or 'staff'
+     * @return self
+     */
+    public function address(string $type): self
+    {
+        $this->result = $this->assignAddress($type);
         return $this;
     }
 
@@ -134,62 +142,79 @@ trait CommonModel
      * Get Result
      * @return mixed
      */
-    public function result()
+    public function result(): mixed
     {
-        // Check Empty
-        if (empty($this->result)) {
-            $this->resetTrait();
-            return [];
-        }
-
         $result = $this->result;
-        // Check Status Required
-        if ($this->status) {
-            $result = $this->statusRelation($result);
-        }
-        $this->resetTrait();
+        // Reset Values
+        $this->result = null;
+        $this->select = null;
+        // Return Result
         return $result;
     }
 
     /* ====================================================================================== */
     /**
      * Make Status Relation
-     * @return array
+     * @return mixed
      */
-    private function statusRelation(array $result): array
+    private function assignStatus(): mixed
     {
+        // Check Result is Not Empty
+        if (empty($this->result)) {
+            return $this->result;
+        }
         // Get Status Model
         $statuses = $this->statuses();
 
         // Set Status
-        if (isset($result['status'])) {
-            if (array_key_exists($result['status'], $statuses)) {
-                $status = ['entity' => $result['status'], 'color' => $statuses[$result['status']]];
-            } else {
-                $status = ['entity' => $result['status'], 'color' => '#000000'];
-            }
-            $result['status'] = $status;
-        } elseif (isset($result[0]['status'])) {
-            foreach ($result as $k => $v) {
-                if (array_key_exists($result[$k]['status'], $statuses)) {
-                    $status = ['entity' => $result[$k]['status'], 'color' => $statuses[$result[$k]['status']]];
-                } else {
-                    $status = ['entity' => $result[$k]['status'], 'color' => '#000000'];
-                }
-                $result[$k]['status'] = $status;
+        if (isset($this->result['status'])) {
+            $this->result['status'] = [
+                'entity' => $this->result['status'],
+                'color' => $statuses[$this->result['status']] ?? '#000000'
+                ];
+        } elseif (isset($this->result[0]['status'])) {
+            $keys = array_keys($this->result);
+            foreach ($keys as $k) {
+                $this->result[$k]['status'] = [
+                    'entity' => $this->result[$k]['status'],
+                    'color' => $statuses[$this->result[$k]['status']] ?? '#000000'
+                    ];
             }
         }
-        return $result;
+        return $this->result;
     }
 
     /**
-     * Reset Model
-     * @return void
+     * Assign Address
+     * @return mixed
      */
-    private function resetTrait(): void
+    private function assignAddress(string $type): mixed
     {
-        $this->result = null;
-        $this->status = false;
-        $this->select = null;
+        // Check Result is Not Empty
+        if (empty($this->result)) {
+            return $this->result;
+        }
+
+        // Validate Type
+        $type = strtolower($type);
+        if (!in_array($type, ['client', 'staff'])) {
+            return $this->result;
+        }
+
+        // Get Address Model
+        $obj = new Address();
+
+        // Assign Address
+        if (isset($this->result[$this->id])) {
+            $where = ['relid' => $this->result[$this->id], 'type' => $type, 'profile_default' => 'yes'];
+            $this->result['address'] = $obj->where($where)->first();
+        } elseif (isset($this->result[0][$this->id])) {
+            $keys = array_keys($this->result);
+            foreach ($keys as $k) {
+                $where = ['relid' => $this->result[$k][$this->id], 'type' => $type, 'profile_default' => 'yes'];
+                $this->result[$k]['address'] = $obj->where($where)->first();
+            }
+        }
+        return $this->result;
     }
 }
