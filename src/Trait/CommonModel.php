@@ -12,6 +12,7 @@ trait CommonModel
     // Load Traits
     use Support\AddressModel;
     use Support\StatusModel;
+    use Support\NotesModel;
 
     /**
      * @var mixed $result

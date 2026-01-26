@@ -55,7 +55,7 @@ class ClientFactory extends Factory
             'username'  =>  $entity,
             'email'     =>  $entity
         ];
-        return $this->model->row($where, '=', 'OR')->status()->address('client')->result();
+        return $this->model->row($where, '=', 'OR')->status()->address('client')->staffNote()->result();
     }
 
     /**
@@ -97,6 +97,15 @@ class ClientFactory extends Factory
         $this->total = $total->count();
         // Return Result
         return $model->status()->result();
+    }
+
+    /**
+     * Get Statuses With Colors
+     * @return array
+     */
+    public function statuses(): array
+    {
+        return $this->model->statuses();
     }
 
     /**

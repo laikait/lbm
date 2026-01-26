@@ -36,11 +36,12 @@ class StaffFactory
 
     /**
      * Get Single Staff
+     * @param int|string $staff Staff to Get Value. Example: id, uuid, username, email
+     * @param ?string $columns Table columns. Example: 'id,uuid,username
      * @return array
      */
     public function single(int|string $staff): array
     {
-        $staff = htmlspecialchars($staff);
         $where = [
             'id'        =>  $staff,
             'uuid'      =>  $staff,

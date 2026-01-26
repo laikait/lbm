@@ -11,9 +11,10 @@ trait AddressModel
 {
     /**
      * Assign Address
+     * @param string $type Address Type. Accepted: 'client', staff'
      * @return self
      */
-    public function address(): self
+    public function address(string $type): self
     {
         // Check Result is Not Empty
         if (empty($this->result)) {
@@ -23,14 +24,23 @@ trait AddressModel
         // Get Address Model
         $class = '\\Laika\\App\\Model\\Address';
         $obj = new $class();
-
+    
         // Set Status
         if (isset($this->result[$this->id])) {
-            $where = ['relid' => $this->result[$this->id], 'type' => 'client', 'profile_default' => 'yes'];
+            $where = [
+                'relid' => $this->result[$this->id],
+                'type' => strtolower($type),
+                'profile_default' => 'yes'
+            ];
             $this->result['address'] = $obj->where($where)->first();
         } elseif (isset($this->result[0][$this->id])) {
-            foreach ($this->result as $k => $v) {
-                $where = ['relid' => $this->result[$k][$this->id], 'type' => 'client', 'profile_default' => 'yes'];
+            $keys = array_keys($this->result);
+            foreach ($keys as $k) {
+                $where = [
+                    'relid' => $this->result[$k][$this->id],
+                    'type' => strtolower($type),
+                    'profile_default' => 'yes'
+                ];
                 $this->result[$k]['address'] = $obj->where($where)->first();
             }
         }
