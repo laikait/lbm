@@ -32,7 +32,7 @@ trait AddressModel
                 'type' => strtolower($type),
                 'profile_default' => 'yes'
             ];
-            $this->result['address'] = $obj->where($where)->first();
+            $this->result['address'] = $obj->select('address_1,address_2,city,zip,country,profile_default')->where($where)->first();
         } elseif (isset($this->result[0][$this->id])) {
             $keys = array_keys($this->result);
             foreach ($keys as $k) {

@@ -13,6 +13,7 @@ trait CommonModel
     use Support\AddressModel;
     use Support\StatusModel;
     use Support\NotesModel;
+    use Support\RoleModel;
 
     /**
      * @var mixed $result

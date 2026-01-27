@@ -24,6 +24,40 @@ trait NotesModel
 
         // Get Note Class
         $class = __CLASS__ . 'Note';
+        if (!class_exists($class)) {
+            return $this;
+        }
+        $obj = new $class();
+
+        // Set Notes
+        if (isset($this->result[$this->id])) {
+            $where = ['relid' => $this->result[$this->id]];
+            $notes = $obj->select('uuid,staff,note,created')->where($where)->order($obj->id, 'DESC')->get();
+            $this->result['notes'] = $this->assignNotesStaff($notes);
+        } elseif (isset($this->result[0][$this->id])) {
+            $keys = array_keys($this->result);
+            foreach ($keys as $k) {
+                $where = ['relid' => $this->result[$k][$this->id]];
+                $notes = $obj->select('uuid,staff,note,created')->where($where)->order($obj->id, 'DESC')->get();
+                $this->result[$k]['notes'] = $this->assignNotesStaff($notes);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Assign Client Notes
+     * @return self
+     */
+    public function clientNote(): self
+    {
+        // Check Result is Not Empty
+        if (empty($this->result)) {
+            return $this;
+        }
+
+        // Get Note Class
+        $class = __CLASS__ . 'Note';
         $obj = new $class();
 
         // Set Notes

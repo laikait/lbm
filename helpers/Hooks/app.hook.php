@@ -10,11 +10,6 @@
 
 declare(strict_types=1);
 
-// use Laika\Core\App\Route\Asset;
-use Laika\Core\Helper\Config;
-use Laika\Core\Helper\Url;
-use LBM\Factory\Option;
-
 /*============================= OPTION HOOKS =============================*/
 /**
  * Get App DB Option
@@ -23,7 +18,7 @@ use LBM\Factory\Option;
  * @return string
  */
 add_hook('option', function(string $key, mixed $default = ''){
-    return Option::get($key, Config::get('env', $key, $default));
+    return LBM\Factory\Option::get($key, Laika\Core\Helper\Config::get('env', $key, $default));
 }, 1000);
 
 /**
@@ -92,10 +87,44 @@ add_hook('message.get', function(): string {
 /*============================= FORM HOOKS =============================*/
 /**
  * Option is Selected
- * @param string $name Request Key Name
- * @param string $value Option Value
+ * @param string $key Request Key Name. Example: 'status'
+ * @param string $value Existing Value. Example: 'active'
+ * @param string $match Match Value; Example: 'active'
  * @return string
  */
-add_hook('selected', function(string $name, string $value): string{
-    return (do_hook('request.input', $name) == $value) ? 'selected' : '';
+add_hook('selected', function(string $key, string $value, string $match): string{
+    return (do_hook('request.input', $key, $value) == $match) ? 'selected' : '';
+}, 1000);
+
+/**
+ * Form CSRF Validateion
+ * @param string $type CSRF Type ADMIN/CLIENT
+ * @param string $redirect Redirect Route Name
+ * @return void
+ */
+add_hook('csrf.validate', function(string $type, string $redirect): void {
+    if (!call_user_func([new \Laika\Core\Helper\CSRF($type), 'validate'])) {
+        call_user_func([(new \Laika\Core\Http\Redirect()), 'with'], LANG::$invalid_csrf, false)->back($redirect);
+    }
+}, 1000);
+
+/*============================= HTML HOOKS =============================*/
+/**
+ * App Copyright Text
+ * @param string $class CSS Class for Anchor Tag
+ * @return string
+ */
+add_hook('app.copyright', function(string $class = 'app-text-secondary'): string {
+    $year = date('Y');
+    $name = do_hook('app.name');
+    return "&copy; {$year}. <a class=\"{$class}\" href=\"" . named('/', [], true) . "\">{$name}</a> All Rights Reserved.";
+});
+
+/**
+ * App Powered By Text
+ * @param string $class CSS Class for Anchor Tag
+ * @return string
+ */
+add_hook('app.poweredby', function(string $class = 'app-text-secondary'): string {
+    return do_hook('option.bool', 'poweredby') ? "Powered By <a class=\"{$class}\" target=\"_blank\" href=\"https://laikait.com\">Laika IT</a>" : '';
 });
