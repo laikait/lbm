@@ -51,6 +51,16 @@ add_hook('app.logo', function(?string $key = null): string {
 }, 1000);
 
 /**
+ * App Logo
+ * @param ?string $key Option Table lkey column. Example: admin.logo app.logo
+ * @return string
+ */
+add_hook('app.icon', function(?string $key = null): string {
+    $name = \do_hook('option', $key ?: 'app.icon', 'icon.png');
+    return \named('app.src', ['name'=>"/img/{$name}"], true);
+}, 1000);
+
+/**
  * Panel Info
  */
 add_hook('panel', function(){

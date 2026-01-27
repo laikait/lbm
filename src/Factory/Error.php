@@ -16,12 +16,12 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
-class Form
+class Error
 {
     /**
-     * @var Form $form Form Static Object
+     * @var Error $form Form Static Object
      */
-    private static Form $form;
+    private static Error $error;
 
     /**
      * @var array $errors Form Errors
@@ -37,10 +37,10 @@ class Form
      * Initiate Form Object
      * @return Form
      */
-    private static function instance(): Form
+    private static function instance(): Error
     {
-        self::$form ??= new self();
-        return self::$form;
+        self::$error ??= new self();
+        return self::$error;
     }
 
     /**

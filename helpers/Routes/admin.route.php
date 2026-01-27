@@ -27,6 +27,7 @@ Router::group(ADMIN, function(){
     // Clients
     Router::get('/clients', 'Admin\Client@clients')->middleware('Admin\Client')->name('staff.clients');
     Router::get('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client')->name('staff.client');
+    Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client');
 
     // Ticket
     Router::get('/tickets', function(){})->name('staff.tickets');
