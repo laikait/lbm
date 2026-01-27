@@ -30,4 +30,15 @@ abstract class Factory
      * @return array
      */
     abstract public function limit(): array;
+
+    /**
+     * Update Rows by Request
+     * @param array $where Where Condition
+     * @param array $data Data to Update
+     * @return int
+     */
+    public function update(array $where, array $data): int
+    {
+        return $this->model->where($where)->update($data);
+    }
 }

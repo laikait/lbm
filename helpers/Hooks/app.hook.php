@@ -98,12 +98,12 @@ add_hook('message.get', function(): string {
 /**
  * Option is Selected
  * @param string $key Request Key Name. Example: 'status'
- * @param string $value Existing Value. Example: 'active'
- * @param string $match Match Value; Example: 'active'
+ * @param string $existing Existing Value. Example: 'active'
+ * @param string $match Match Value (Changable as per loop); Example: 'active'
  * @return string
  */
-add_hook('selected', function(string $key, string $value, string $match): string{
-    return (do_hook('request.input', $key, $value) == $match) ? 'selected' : '';
+add_hook('selected', function(string $key, string $existing, string $match): string {
+    return (do_hook('request.input', $key, $existing)) === $match ? 'selected' : '';
 }, 1000);
 
 /**
@@ -117,6 +117,18 @@ add_hook('csrf.validate', function(string $type, string $redirect): void {
         call_user_func([(new \Laika\Core\Http\Redirect()), 'with'], LANG::$invalid_csrf, false)->back($redirect);
     }
 }, 1000);
+
+/**
+ * Get Form Error
+ * @param string $key Form Field Key Name
+ * @param string $class CSS Class for Error Span
+ * @return string
+ */
+add_hook('form.error', function(string $key, string $class = 'app-text-danger'): string {
+    $errors = \LBM\Factory\FormError::get($key);
+    $error = $errors[0] ?? null;
+    return $error ? "<span class=\"{$class}\">{$error}</span>" : '';
+});
 
 /*============================= HTML HOOKS =============================*/
 /**

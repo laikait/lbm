@@ -13,7 +13,7 @@ trait StatusModel
      * Get Statuses With Colors
      * @return array
      */
-    public function statuses(): array
+    public function status_list(): array
     {
         $class = __CLASS__ . 'Status';
         if (!class_exists($class)) {
@@ -36,7 +36,7 @@ trait StatusModel
         }
 
         // Get Statuses
-        $statuses = $this->statuses();
+        $statuses = $this->status_list();
 
         // Set Status
         if (isset($this->result['status'])) {

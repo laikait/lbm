@@ -16,12 +16,12 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
-class Error
+class FormError
 {
     /**
-     * @var Error $form Form Static Object
+     * @var FormError $formError Form Static Object
      */
-    private static Error $error;
+    private static FormError $formError;
 
     /**
      * @var array $errors Form Errors
@@ -35,28 +35,32 @@ class Error
 
     /**
      * Initiate Form Object
-     * @return Form
+     * @return FormError
      */
-    private static function instance(): Error
+    private static function instance(): FormError
     {
-        self::$error ??= new self();
-        return self::$error;
+        self::$formError ??= new self();
+        return self::$formError;
     }
 
     /**
      * Add Form Error
-     * @param string $name Addons Name. Example: 'domain'
-     * @param array $value Addons Value. Example: ['title' => '<any_title>','url'=>'<any_link>']
+     * @param array $errors Form Errors
      * @return void
      */
-    public static function add(string $name, array $value): void
+    public static function add(array $errors): void
     {
-        self::instance()->errors[$name] = $value;
+        self::instance()->errors = $errors;
         return;
     }
 
-    public static function get(?string $name = null): array
+    /**
+     * Get Form Errors
+     * @param string|null $key Get Specific Key Errors
+     * @return array
+     */
+    public static function get(?string $key = null): array
     {
-        return empty($name) ? self::instance()->errors : self::instance()->errors[$name];
+        return empty($key) ? self::instance()->errors : self::instance()->errors[$key] ?? [];
     }
 }

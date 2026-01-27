@@ -9,7 +9,6 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 trait CommonModel
 {
-    // Load Traits
     use Support\AddressModel;
     use Support\StatusModel;
     use Support\NotesModel;

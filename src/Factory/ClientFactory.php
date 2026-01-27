@@ -17,6 +17,7 @@ namespace LBM\Factory;
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
 use Laika\Core\Http\Request;
+use Laika\App\Model\Country;
 use Laika\App\Model\Client;
 use LBM\Abstract\Factory;
 
@@ -25,7 +26,7 @@ class ClientFactory extends Factory
     /**
      * @var Client $model
      */
-    private Client $model;
+    protected Client $model;
 
     /**
      * Total Rows
@@ -100,12 +101,21 @@ class ClientFactory extends Factory
     }
 
     /**
-     * Get Statuses With Colors
+     * Get Statuses List
      * @return array
      */
-    public function statuses(): array
+    public function status_list(): array
     {
-        return $this->model->statuses();
+        return $this->model->status_list();
+    }
+
+    /**
+     * Get Countries List
+     * @return array
+     */
+    public function country_list(): array
+    {
+        return call_user_func([(new Country()), 'country_list']);
     }
 
     /**
