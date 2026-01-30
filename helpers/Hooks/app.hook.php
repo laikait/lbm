@@ -13,22 +13,31 @@ declare(strict_types=1);
 /*============================= OPTION HOOKS =============================*/
 /**
  * Get App DB Option
- * @param string $key DB Option lkey Name
+ * @param string $entity DB Option entity
  * @param mixed $default Option Default Value
  * @return string
  */
-add_hook('option', function(string $key, mixed $default = ''){
-    return LBM\Factory\Option::get($key, Laika\Core\Helper\Config::get('env', $key, $default));
+add_hook('option', function(string $entity, mixed $default = ''){
+    return LBM\Support\Option::get($entity, Laika\Core\Helper\Config::get('env', $entity, $default));
+}, 1000);
+
+/**
+ * Get App DB Option as Int
+ * @param string $entity DB Option entity
+ * @return int
+ */
+add_hook('option.int', function(string $entity): int{
+    return (int) \do_hook('option', $entity, 0);
 }, 1000);
 
 /**
  * Get App DB Option as Bool
- * @param string $key DB Option lkey Name
+ * @param string $entity DB Option entity
  * @return bool
  */
-add_hook('option.bool', function(string $key){
-    $value = \do_hook('option', $key, false);
-    return \is_bool($value) ? $value : (bool) \preg_match('/^(yes|enable|true|on|1)$/i', $value);
+add_hook('option.bool', function(string $entity){
+    $value = \do_hook('option', $entity, false);
+    return \is_bool($value) ? $value : (bool) \preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value);
 }, 1000);
 
 /*============================= APP HOOKS =============================*/
@@ -121,16 +130,23 @@ add_hook('csrf.validate', function(string $type, string $redirect): void {
 /**
  * Get Form Error
  * @param string $key Form Field Key Name
- * @param string $class CSS Class for Error Span
  * @return string
  */
-add_hook('form.error', function(string $key, string $class = 'app-text-danger'): string {
-    $errors = \LBM\Factory\FormError::get($key);
-    $error = $errors[0] ?? null;
-    return $error ? "<span class=\"{$class}\">{$error}</span>" : '';
+add_hook('form.error', function(string $key): string {
+    $errors = \LBM\Support\FormError::get($key);
+    return $errors[0] ?? '';
 });
 
 /*============================= HTML HOOKS =============================*/
+/**
+ * Active Class for Navigation
+ * @param string $key Input Key to Get Value
+ * @param string $value Input Key Value to Match
+ * @return string
+ */
+add_hook('class.active', function(string $key, string $value = ''): string {
+    return do_hook('request.input', $key) === $value ? 'active' : '';
+});
 /**
  * App Copyright Text
  * @param string $class CSS Class for Anchor Tag

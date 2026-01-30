@@ -16,9 +16,13 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use Laika\App\Model\ClientStatus;
+use Laika\App\Model\ClientNote;
 use Laika\Core\Http\Request;
 use Laika\App\Model\Country;
+use Laika\App\Model\Address;
 use Laika\App\Model\Client;
+use Laika\App\Model\Staff;
 use LBM\Abstract\Factory;
 
 class ClientFactory extends Factory
@@ -56,7 +60,29 @@ class ClientFactory extends Factory
             'username'  =>  $entity,
             'email'     =>  $entity
         ];
-        return $this->model->row($where, '=', 'OR')->status()->address('client')->staffNote()->result();
+
+        // Get Client
+        $client = $this->model->where($where, '=', 'OR')->first();
+
+        // Get Other Related Values
+        if (!empty($client)) {
+            // Get Status
+            $client['status'] = (new ClientStatus())->select('entity,color')->where(['entity' => $client['status']])->first();
+
+            // Client Notes
+            $client['notes'] = (new ClientNote())->select('note,staff,created')->where(['relid' => $client['id']])->get();
+
+            // Get Address
+            $client['address'] = (new Address())->select('address_1,address_2,city,state,zip,country')->where(['type' => 'client', 'relid' => $client['id']])->first();
+
+            // Get Note Staffs
+            $staff = new Staff();
+            foreach ($client['notes'] as $k => $note) {
+                $client['notes'][$k]['staff'] = $staff->select('uuid,username')->where(['id' => $note['staff']])->first();
+            }
+        }
+
+        return $client;
     }
 
     /**
@@ -66,10 +92,13 @@ class ClientFactory extends Factory
     {
         // Get Page Number
         $page = \call_user_func([new Request, 'input'], 'page', 1);
+        // Get Limit Per Page
+        $limit = \do_hook('option.int', 'data.limit', 20);
         // Get Input
         $input = \do_hook('request.input', 'client');
         // Get Model Object
         $model = $this->model;
+
         // Get Model Object for Total Client
         $total = (new Client)->select($this->model->id);
         if (!empty($input)) {
@@ -84,12 +113,12 @@ class ClientFactory extends Factory
                 'companyname' => $input
             ];
             // Extend Client Model
-            $model = $model->rows($where, 'REGEXP', 'OR', page:$page);
+            $model = $model->select()->where($where, 'REGEXP', 'OR')->limit($limit)->offset($page);
             // Extend Total Client Model
             $total = $total->where($where, 'REGEXP', 'OR');
         } else {
             // Extend Client Model
-            $model = $model->rows($this->queries(), page:$page);
+            $model = $model->where($this->queries())->limit($limit)->offset($page);
             // Extend Total Client Model
             $total = $total->where($this->queries());
         }
@@ -97,7 +126,18 @@ class ClientFactory extends Factory
         // Set Total Client
         $this->total = $total->count();
         // Return Result
-        return $model->status()->result();
+        $clients = $model->get();
+
+        // Get Related Values
+        if (!empty($clients)) {
+            $statusModel = new ClientStatus();
+            foreach ($clients as $k => $client) {
+                // Get Status
+                $clients[$k]['status'] = $statusModel->select('entity,color')->where(['entity' => $client['status']])->first();
+            }
+        }
+
+        return $clients;
     }
 
     /**
@@ -106,7 +146,7 @@ class ClientFactory extends Factory
      */
     public function status_list(): array
     {
-        return $this->model->status_list();
+        return (new ClientStatus)->list();
     }
 
     /**
@@ -115,7 +155,7 @@ class ClientFactory extends Factory
      */
     public function country_list(): array
     {
-        return call_user_func([(new Country()), 'country_list']);
+        return (new Country())->list();
     }
 
     /**

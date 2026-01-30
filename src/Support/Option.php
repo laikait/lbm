@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace LBM\Factory;
+namespace LBM\Support;
 
 use Laika\App\Model\Options;
 
@@ -27,8 +27,8 @@ class Option
     {
         try {
             $model = new Options();
-            $option = $model->where([$model->key => $name])->first();
-            $default = $option[$model->value] ?? $default;
+            $option = $model->where(['entity' => $name])->first();
+            $default = $option['data'] ?? $default;
         } catch (\Throwable $th) {}
         return $default;
     }
@@ -45,15 +45,15 @@ class Option
         $default = $default ? 'yes' : 'no';
 
         // Check Option Name Doesn't Exists
-        if (empty($model->first([$model->key => $name]))) {
+        if (empty($model->first(['entity' => $name]))) {
             return (bool) $model->insert([
-                $model->key => $name,
-                $model->value => $value,
-                $model->default => $default
+                'entity' => $name,
+                'data' => $value,
+                'is_default' => $default
             ]);
         }
 
         // Update Value
-        return (bool) $model->update([$model->key => $name], [$model->value => $value]);
+        return (bool) $model->update(['entity' => $name], ['data' => $value]);
     }
 }

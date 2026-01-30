@@ -16,6 +16,8 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use Laika\App\Model\StaffStatus;
+use Laika\App\Model\StaffRole;
 use Laika\Core\Http\Request;
 use Laika\App\Model\Staff;
 
@@ -48,7 +50,20 @@ class StaffFactory
             'username'  =>  $staff,
             'email'     =>  $staff
         ];
-        return $this->model->row($where, '=', 'OR')->status()->role()->result();
+
+        // Get Staff
+        $staff = $this->model->where($where, '=', 'OR')->first();
+
+        // Get Related Values
+        if (!empty($staff)) {
+            // Add Status
+            $staff['status'] = (new StaffStatus)->where(['entity' => $staff['status']])->first();
+            // Add Role
+            $role = (new StaffRole)->select('role,entities')->where(['role' => $staff['role']])->first();
+            $role['entities'] = unserialize($role['entities']);
+            $staff['role'] = $role;
+        }
+        return $staff;
     }
 
     /**
