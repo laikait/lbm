@@ -24,9 +24,28 @@ use Laika\App\Model\Staff;
 class StaffFactory
 {
     /**
+     * Staff Model
      * @var Staff $model
      */
     private Staff $model;
+
+    /**
+     * Page Number
+     * @var int $page
+     */
+    private int $page;
+
+    /**
+     * Data Limit
+     * @var int $limit
+     */
+    private int $limit;
+
+    /**
+     * Accepted Queries
+     * @var array $accepted
+     */
+    private array $accepted;
 
     /**
      * Initiate Client Factory
@@ -34,6 +53,9 @@ class StaffFactory
     public function __construct()
     {
         $this->model = new Staff();
+        $this->page = (int) \call_user_func([new Request, 'input'], 'page', 1);
+        $this->limit = \do_hook('option.int', 'data.limit', 20);
+        $this->accepted = ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status'];
     }
 
     /**
@@ -71,8 +93,9 @@ class StaffFactory
      */
     public function limit(): array
     {
-        // Get Page Number
-        $page = call_user_func([new Request, 'input'], 'page', 1);
+        // Get Input
+        $input = \do_hook('request.input', 'staff');
+
         return $this->model->rows($this->queries(), page:$page)->status()->role()->result();
     }
 

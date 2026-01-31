@@ -41,4 +41,22 @@ abstract class Factory
     {
         return $this->model->where($where)->update($data);
     }
+
+    /*============================ INTERNAL API ============================*/
+    /**
+     * Match Database Columns with Queries
+     * @return array
+     */
+    protected function queries(): array
+    {
+        $queries = [];
+        $inputs = \do_hook('request.inputs');
+        // Get Accepted Query Values
+        foreach($inputs as $k => $v) {
+            if (in_array($k, $this->accepted)) {
+                $queries[$k] = $v;
+            }
+        }
+        return $queries;
+    }
 }

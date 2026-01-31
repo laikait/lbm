@@ -33,10 +33,28 @@ class ClientFactory extends Factory
     protected Client $model;
 
     /**
+     * Page Number
+     * @var int $page
+     */
+    private int $page;
+
+    /**
+     * Data Limit
+     * @var int $limit
+     */
+    private int $limit;
+
+    /**
      * Total Rows
      * @var int $total
      */
     private int $total;
+
+    /**
+     * Accepted Queries
+     * @var array $accepted
+     */
+    private array $accepted;
 
     /**
      * Initiate Client Factory
@@ -44,6 +62,9 @@ class ClientFactory extends Factory
     public function __construct()
     {
         $this->model = new Client();
+        $this->page = (int) \call_user_func([new Request, 'input'], 'page', 1);
+        $this->limit = \do_hook('option.int', 'data.limit', 20);
+        $this->accepted = ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname'];
     }
 
     /**
@@ -90,17 +111,11 @@ class ClientFactory extends Factory
      */
     public function limit(): array
     {
-        // Get Page Number
-        $page = \call_user_func([new Request, 'input'], 'page', 1);
-        // Get Limit Per Page
-        $limit = \do_hook('option.int', 'data.limit', 20);
         // Get Input
         $input = \do_hook('request.input', 'client');
-        // Get Model Object
-        $model = $this->model;
 
         // Get Model Object for Total Client
-        $total = (new Client)->select($this->model->id);
+        $total = (new Client())->select($this->model->id);
         if (!empty($input)) {
             $input = "^{$input}";
             $where = [
@@ -112,28 +127,28 @@ class ClientFactory extends Factory
                 'country' => $input,
                 'companyname' => $input
             ];
-            // Extend Client Model
-            $model = $model->select()->where($where, 'REGEXP', 'OR')->limit($limit)->offset($page);
             // Extend Total Client Model
             $total = $total->where($where, 'REGEXP', 'OR');
-        } else {
             // Extend Client Model
-            $model = $model->where($this->queries())->limit($limit)->offset($page);
+            $this->model = $this->model->where($where, 'REGEXP', 'OR');
+        } else {
             // Extend Total Client Model
             $total = $total->where($this->queries());
+            // Extend Client Model
+            $this->model = $this->model->where($this->queries());
         }
 
+        // Return Result
+        $clients = $this->model->select()->limit($this->limit)->offset($this->page)->get();
         // Set Total Client
         $this->total = $total->count();
-        // Return Result
-        $clients = $model->get();
 
         // Get Related Values
         if (!empty($clients)) {
-            $statusModel = new ClientStatus();
+            $smodel = new ClientStatus();
             foreach ($clients as $k => $client) {
                 // Get Status
-                $clients[$k]['status'] = $statusModel->select('entity,color')->where(['entity' => $client['status']])->first();
+                $clients[$k]['status'] = $smodel->select('entity,color')->where(['entity' => $client['status']])->first();
             }
         }
 
@@ -165,24 +180,5 @@ class ClientFactory extends Factory
     public function total(): int
     {
         return $this->total ?? 0;
-    }
-
-    /*============================ INTERNAL API ============================*/
-    /**
-     * Match Database Columns with Queries
-     * @return array
-     */
-    private function queries()
-    {
-        $accepted = ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname'];
-        $queries = [];
-        $inputs = \do_hook('request.inputs');
-        // Get Accepted Query Values
-        foreach($inputs as $k => $v) {
-            if (in_array($k, $accepted)) {
-                $queries[$k] = $v;
-            }
-        }
-        return $queries;
     }
 }
