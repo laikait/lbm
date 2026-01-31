@@ -114,7 +114,7 @@ class ClientFactory extends Factory
         // Get Input
         $input = \do_hook('request.input', 'client');
 
-        // Get Model Object for Total Client
+        // Get Model Object for Total Clients
         $total = (new Client())->select($this->model->id);
         if (!empty($input)) {
             $input = "^{$input}";
