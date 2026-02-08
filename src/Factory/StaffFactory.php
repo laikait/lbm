@@ -16,6 +16,8 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use LBM\Exception\FactoryException;
+use Laika\App\Model\StaffActivity;
 use Laika\App\Model\StaffStatus;
 use Laika\App\Model\StaffRole;
 use Laika\Core\Http\Request;
@@ -25,44 +27,14 @@ use LBM\Abstract\Factory;
 class StaffFactory extends Factory
 {
     /**
-     * Staff Model
-     * @var Staff $model
-     */
-    private Staff $model;
-
-    /**
-     * Page Number
-     * @var int $page
-     */
-    private int $page;
-
-    /**
-     * Data Limit
-     * @var int $limit
-     */
-    private int $limit;
-
-    /**
-     * Total Rows
-     * @var int $total
-     */
-    private int $total;
-
-    /**
-     * Accepted Queries
-     * @var array $accepted
-     */
-    private array $accepted;
-
-    /**
-     * Initiate Client Factory
+     * Initiate Staff Factory
      */
     public function __construct()
     {
         $this->model = new Staff();
         $this->page = (int) \call_user_func([new Request, 'input'], 'page', 1);
         $this->limit = \do_hook('option.int', 'data.limit', 20);
-        $this->accepted = ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status'];
+        $this->acceptedQueries = ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status'];
     }
 
     /**
@@ -140,5 +112,22 @@ class StaffFactory extends Factory
         }
 
         return $staffs;
+    }
+
+    /**
+     * Create Activity
+     * @return void
+     */
+    public function createActivity(array $data): void
+    {
+        try {
+            $model = new StaffActivity();
+            $model->transaction(function ($m) use ($data) {
+                $m->insert($data);
+            });
+        } catch (FactoryException $th) {
+            throw new FactoryException("Unable to Insert Staff Activity!");
+        }
+        return;
     }
 }

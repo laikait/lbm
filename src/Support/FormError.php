@@ -55,6 +55,15 @@ class FormError
     }
 
     /**
+     * Check Form Has Error
+     * @return bool
+     */
+    public static function hasError(): bool
+    {
+        return !empty(self::instance()->errors);
+    }
+
+    /**
      * Get Form Errors
      * @param string|null $key Get Specific Key Errors
      * @return array

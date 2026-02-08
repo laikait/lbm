@@ -87,21 +87,35 @@ add_hook('panel', function(){
     return $arr;
 }, 1000);
 
+/**
+ * Make Log URL
+ */
+add_hook('log.url', function (string $label, string $named, array $param = []) {
+    return '<a href="' . named($named, $param, true) . '">' . $label . '</a>';
+}, 1000);
+
 /*============================= MESSAGE HOOKS =============================*/
 /**
  * Get Notification Message
  */
-add_hook('message.get', function(): string {
-    $m = do_hook('message.show');
-    if(!$m) {
-        return '';
-    }
-    // Return Success Message
-    if ($m['status']) {
-        return "<div id=\"app-success-message\">{$m['info']}</div>";
-    }
-    return "<div id=\"app-error-message\">{$m['info']}</div>";
-}, 1000);
+// add_hook('message.get', function(): string {
+//     $m = do_hook('message.show');
+//     if(!$m) {
+//         return '';
+//     }
+//     // Return Success Message
+//     if ($m['status']) {
+//         return "<div id=\"app-success-message\">{$m['info']}</div>";
+//     }
+//     return "<div id=\"app-error-message\">{$m['info']}</div>";
+// }, 1000);
+
+/**
+ * Create Redirect Message
+ */
+add_hook('redirect.message', function (string $userMesssage, string $exceptionMessage) {
+    return \do_hook('config.env', 'debug', false) ? $exceptionMessage : $userMesssage;
+});
 
 /*============================= FORM HOOKS =============================*/
 /**
@@ -119,12 +133,13 @@ add_hook('selected', function(string $key, string $existing, string $match): str
  * Form CSRF Validateion
  * @param string $type CSRF Type ADMIN/CLIENT
  * @param string $redirect Redirect Route Name
- * @return void
+ * @return array
  */
-add_hook('csrf.validate', function(string $type, string $redirect): void {
+add_hook('csrf.validate', function(string $type): array {
     if (!call_user_func([new \Laika\Core\Helper\CSRF($type), 'validate'])) {
-        call_user_func([(new \Laika\Core\Http\Redirect()), 'with'], LANG::$invalid_csrf, false)->back($redirect);
+        return ['status' => false, 'message' => LANG::$invalidCsrf];
     }
+    return ['status' => true, 'message' => LANG::$validCsrf];
 }, 1000);
 
 /**

@@ -16,8 +16,53 @@ namespace LBM\Abstract;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use Laika\Core\Http\Redirect;
+use Laika\Core\Http\Request;
+use Laika\Model\Model;
+
 abstract class Factory
 {
+    /**
+     * @var Model $model
+     */
+    protected Model $model;
+
+    /**
+     * Total Pages
+     * @var int $total
+     */
+    protected int $total;
+
+    /**
+     * Page Number
+     * @var int $page
+     */
+    protected int $page;
+
+    /**
+     * Data Limit
+     * @var int $limit
+     */
+    protected int $limit;
+
+    /**
+     * Accepted Queries
+     * @var array
+     */
+    protected array $acceptedQueries;
+
+    /**
+     * Request
+     * @var Request $request
+     */
+    protected Request $request;
+
+    /**
+     * Request
+     * @var Redirect $request
+     */
+    protected Redirect $redirect;
+
     /**
      * Get Row by Request
      * @param int|string $entity Entity to Get Value.
@@ -39,7 +84,9 @@ abstract class Factory
      */
     public function update(array $where, array $data): int
     {
-        return $this->model->where($where)->update($data);
+        return $this->model->transaction(function ($m) use($where, $data) {
+            return $m->where($where)->update($data);
+        });
     }
 
     /*============================ INTERNAL API ============================*/
@@ -53,7 +100,7 @@ abstract class Factory
         $inputs = \do_hook('request.inputs');
         // Get Accepted Query Values
         foreach($inputs as $k => $v) {
-            if (in_array($k, $this->accepted)) {
+            if (in_array($k, $this->acceptedQueries)) {
                 $queries[$k] = $v;
             }
         }

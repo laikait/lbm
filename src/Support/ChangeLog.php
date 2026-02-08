@@ -21,39 +21,26 @@ class ChangeLog
     /**
      * @var array $logs Change logs
      */
-    private array $logs;
-
-    private function __construct()
-    {
-        $this->logs = [];
-    }
+    private array $logs = [];
 
     /**
-     * Validate Change Exists
-     * @param mixed $old Old Value
-     * @param mixed $new Nwe Value
-     * @return bool
+     * @param array $existing Existing Value
+     * @param array $input New Input Value
      */
-    public function isChanged(mixed $old, mixed $new): bool
+    public function __construct(array $existing, array $input)
     {
-        return $old === $new;
-    }
-
-    /**
-     * Add Change Log
-     * @param mixed $old Old Value
-     * @param mixed $new Nwe Value
-     * @return array
-     */
-    public function add(string $old, string $new): void
-    {
-        $this->logs[] = ['old' => $old, 'new' => $new];
-        return;
+        // Check & Register Changes
+        foreach ($input as $key => $new) {
+            $old = $existing[$key] ?? '';
+            if ($old !== $new) {
+                $this->logs[$key] = ['old' => $old, 'new' => $new];
+            }
+        }
     }
 
     /**
      * Get Logs
-     * @return array
+     * @return ?array
      */
     public function logs(): array
     {
