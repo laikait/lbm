@@ -25,9 +25,13 @@ Router::group(ADMIN, function(){
     Router::get('/logout')->middleware('Admin\Logout')->name('staff.logout'); // Done
 
     // Clients
-    Router::get('/clients', 'Admin\Client@clients')->middleware('Admin\Client')->name('staff.clients');
+    Router::get('/clients', 'Admin\Client@clients')->middleware('Admin\Clients')->name('staff.clients');
+    // Single Client
     Router::get('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client')->name('staff.client');
     Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client');
+    // Create Client
+    Router::get('/new-client', 'Admin\Client@create')->middleware('Admin\AddClient')->name('staff.add-client');
+    // Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client');
 
     // Ticket
     Router::get('/tickets', function(){})->name('staff.tickets');

@@ -64,6 +64,20 @@ abstract class Factory
     protected Redirect $redirect;
 
     /**
+     * Initiate Client Factory
+     */
+    public function __construct(string $model, array $acceptedQueries = [])
+    {
+        $this->redirect = new Redirect();
+        $this->request = new Request();
+        $this->page = (int) \call_user_func([$this->request, 'input'], 'page', 1);
+        $this->limit = \do_hook('option.int', 'data.limit', 20);
+        $this->acceptedQueries = $acceptedQueries;
+        $model = "\\Laika\\App\\Model\\{$model}";
+        $this->model = new $model();
+    }
+
+    /**
      * Get Row by Request
      * @param int|string $entity Entity to Get Value.
      * @return array

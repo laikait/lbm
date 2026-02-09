@@ -20,7 +20,6 @@ use LBM\Exception\FactoryException;
 use Laika\App\Model\StaffActivity;
 use Laika\App\Model\StaffStatus;
 use Laika\App\Model\StaffRole;
-use Laika\Core\Http\Request;
 use Laika\App\Model\Staff;
 use LBM\Abstract\Factory;
 
@@ -31,10 +30,7 @@ class StaffFactory extends Factory
      */
     public function __construct()
     {
-        $this->model = new Staff();
-        $this->page = (int) \call_user_func([new Request, 'input'], 'page', 1);
-        $this->limit = \do_hook('option.int', 'data.limit', 20);
-        $this->acceptedQueries = ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status'];
+        parent::__construct('Staff', ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status']);
     }
 
     /**

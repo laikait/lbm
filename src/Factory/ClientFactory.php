@@ -18,10 +18,8 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 
 use Laika\App\Model\ClientStatus;
 use Laika\App\Model\ClientNote;
-use Laika\Core\Http\Redirect;
 use Laika\App\Model\Security;
 use Laika\App\Model\Country;
-use Laika\Core\Http\Request;
 use Laika\App\Model\Address;
 use Laika\App\Model\Client;
 use Laika\App\Model\Staff;
@@ -37,12 +35,7 @@ class ClientFactory extends Factory
      */
     public function __construct()
     {
-        $this->redirect = new Redirect();
-        $this->request = new Request();
-        $this->model = new Client();
-        $this->page = (int) \call_user_func([$this->request, 'input'], 'page', 1);
-        $this->limit = \do_hook('option.int', 'data.limit', 20);
-        $this->acceptedQueries = ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname'];
+        parent::__construct('Client', ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname']);
     }
 
     /**
@@ -69,7 +62,7 @@ class ClientFactory extends Factory
             $client['status'] = (new ClientStatus())->select('entity,color')->where(['entity' => $client['status']])->first();
 
             // Client Notes
-            $client['notes'] = (new ClientNote())->select('note,staff,created')->where(['relid' => $client['id']])->get();
+            $client['notes'] = (new ClientNote())->select('note,staff,created')->where(['relid' => $client['id']])->order('id', 'DESC')->get();
 
             // Get Address
             $client['address'] = (new Address())->select('address_1,address_2,city,state,zip,country')->where(['type' => 'client', 'relid' => $client['id']])->first();
@@ -134,6 +127,23 @@ class ClientFactory extends Factory
     }
 
     /**
+     * Create New Client
+     * @return ?array
+     */
+    public function create(): ?array
+    {
+        // Check Staff Has Access
+        if (!admin_access('client.create')) {
+            return ['status' => false, 'message' => LANG::$permissionDenied];
+        }
+        // Get Inputs
+        $inputs = $this->request->inputs();
+        show($inputs, true);
+
+        return null;
+    }
+
+    /**
      * Get Total Client
      * @return int
      */
@@ -145,24 +155,21 @@ class ClientFactory extends Factory
     /**
      * Update on Request
      * @param array $client Single Client Details
-     * @return void
+     * @return ?array
      */
-    public function updateOnRequest(array $client): void
+    public function updateOnRequest(array $client): ?array
     {
         // Check Staff Has Access
         if (!admin_access('client.update')) {
-            $this->redirect->with(LANG::$permissionDenied, false)->to("staff.client?client={$client['uuid']}");
+            return ['status' => false, 'message' => LANG::$permissionDenied];
         }
         // Get Inputs
         $inputs = $this->request->inputs();
 
         // Validate UUID
         if ($client['uuid'] !== $inputs['uuid']) {
-            $this->redirect->with(LANG::$generalError, false)->to("staff.client?client={$client['uuid']}");
+            return ['status' => false, 'message' => LANG::$generalError];
         }
-
-        // Validate CSRF Token
-        do_hook('csrf.validate', ADMIN);
 
         // Get Statuses & Countries List
         $statuses = call_user_func([new ClientStatus(), 'list']);
@@ -195,96 +202,96 @@ class ClientFactory extends Factory
         // Set Form Errors
         FormError::add($this->request->errors());
 
-        if (!FormError::hasError()) {
-            $clientInput = [
-                'fname' => $inputs['fname'],
-                'lname' => $inputs['lname'],
-                'email' => $inputs['email'],
-                'status' => $inputs['status'],
-                'country' => $inputs['country']
-            ];
-
-            $existingClientInfo = [
-                'fname' => $client['fname'],
-                'lname' => $client['lname'],
-                'email' => $client['email'],
-                'status' => $client['status']['entity'],
-                'country' => $client['address']['country']
-            ];
-
-            // Update Address
-            $addressInput = [
-                'address_1' => $inputs['address_1'],
-                'address_2' => $inputs['address_2'] ?? NULL,
-                'state' => $inputs['state'] ?? NULL,
-                'city' => $inputs['city'] ?? NULL,
-                'zip' => $inputs['zip'] ?? NULL,
-                'country' => $inputs['country']
-            ];
-            $existingAddress = $client['address'];
-
-            // Check Has Changes
-            $clientLog = new ChangeLog($existingClientInfo, $clientInput);
-            $addressLog = new ChangeLog($existingAddress, $addressInput);
-
-            // Update Client Info & Address if Log Not Empty
-            $logs = array_merge($clientLog->logs(), $addressLog->logs());
-
-            $message = LANG::$noChanges;
-            $status = true;
-
-            if (!empty($logs)) {
-                $staff = staff();
-                // Make New Log Data
-                $activity = [
-                    'relid' => $staff['id'],
-                    'task'  => LANG::$updatedClient,
-                    'activity' => sprintf(
-                            LANG::$clientUpdatedByStaff,
-                            \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uuid']]),
-                            \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uuid']]),
-                        ),
-                    'changes' => serialize($logs),
-                    'created' => \do_hook('date.format')
-                ];
-
-                try {
-                    // Add Updated Column
-                    $clientInput['updated'] = \do_hook('date.format');
-                    $addressInput['updated'] = \do_hook('date.format');
-
-                    // Update Client
-                    $this->update(['uuid' => $client['uuid']], $clientInput);
-                    
-                    // Set Address Where
-                    $addressWhere = ['type' => 'client', 'relid' => $client['id'], 'profile_default' => 'yes'];
-                    // Update Address
-                    call_user_func([new AddressFactory, 'update'], $addressWhere, $addressInput);
-
-                    // Update Log
-                    call_user_func([new StaffFactory, 'createActivity'], $activity);
-
-                    $message = LANG::$clientUpdatedSuccessfully;
-                } catch (\Throwable $th) {
-                    // Set Failed Message
-                    $message = \do_hook('redirect.message', LANG::$createActivityFailed, $th->getMessage());
-                    $status = false;
-                }
-            }
-            $this->redirect->with($message, $status)->back();
+        // Return if Form Has Error
+        if (FormError::hasError()) {
+            return null;
         }
+
+        $clientInput = [
+            'fname' => $inputs['fname'],
+            'lname' => $inputs['lname'],
+            'email' => $inputs['email'],
+            'status' => $inputs['status'],
+            'country' => $inputs['country']
+        ];
+
+        $existingClientInfo = [
+            'fname' => $client['fname'],
+            'lname' => $client['lname'],
+            'email' => $client['email'],
+            'status' => $client['status']['entity'],
+            'country' => $client['address']['country']
+        ];
+
+        // Update Address
+        $addressInput = [
+            'address_1' => $inputs['address_1'],
+            'address_2' => $inputs['address_2'] ?? NULL,
+            'state' => $inputs['state'] ?? NULL,
+            'city' => $inputs['city'] ?? NULL,
+            'zip' => $inputs['zip'] ?? NULL,
+            'country' => $inputs['country']
+        ];
+        $existingAddress = $client['address'];
+
+        // Check Has Changes
+        $clientLog = new ChangeLog($existingClientInfo, $clientInput);
+        $addressLog = new ChangeLog($existingAddress, $addressInput);
+
+        // Update Client Info & Address if Log Not Empty
+        $logs = array_merge($clientLog->logs(), $addressLog->logs());
+
+        // Take Action if Has Change Logs
+        if (!empty($logs)) {
+            $staff = staff();
+            // Make New Log Data
+            $activity = [
+                'relid' => $staff['id'],
+                'task'  => LANG::$updatedClient,
+                'activity' => sprintf(
+                        LANG::$clientUpdatedByStaff,
+                        \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uuid']]),
+                        \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uuid']]),
+                    ),
+                'changes' => serialize($logs),
+                'created' => \do_hook('date.format')
+            ];
+
+            try {
+                // Add Updated Column
+                $clientInput['updated'] = $addressInput['updated'] = \do_hook('date.format');
+
+                // Update Client
+                $this->update(['uuid' => $client['uuid']], $clientInput);
+                
+                // Set Address Where
+                $addressWhere = ['type' => 'client', 'relid' => $client['id'], 'profile_default' => 'yes'];
+                // Update Address
+                call_user_func([new AddressFactory, 'update'], $addressWhere, $addressInput);
+
+                // Update Log
+                call_user_func([new StaffFactory, 'createActivity'], $activity);
+
+                return ['status' => true, 'message' => LANG::$clientUpdatedSuccessfully];
+            } catch (\Throwable $th) {
+                // Set Failed Message
+                $message = \do_hook('redirect.message', LANG::$createActivityFailed, $th->getMessage());
+                return ['status' => true, 'message' => $message];
+            }
+        }
+        return ['status' => true, 'message' => LANG::$noChanges];
     }
 
     /**
      * Reset Password on Request
      * @param array $client Single Client Details
-     * @return void
+     * @return array
      */
-    public function resetPassword(array $client): void
+    public function resetPassword(array $client): array
     {
         // Check Staff Has Access
         if (!admin_access('client.update')) {
-            $this->redirect->with(LANG::$permissionDenied, false)->back();
+            return ['status' => false, 'message' => LANG::$permissionDenied];
         }
 
         // Get Inputs
@@ -292,35 +299,29 @@ class ClientFactory extends Factory
 
         // Validate UUID
         if ($client['uuid'] !== $inputs['uuid']) {
-            $this->redirect->with(LANG::$generalError, false)->back();
+            return ['status' => false, 'message' => LANG::$generalError];
         }
-
-        // Validate CSRF Token
-        \do_hook('csrf.validate', ADMIN);
 
         $data = ['reset_token' => bin2hex(random_bytes(32)), 'token_expire' => time()];
         try {
             $this->update(['uuid' => $client['uuid']], $data);
-            $message = LANG::$resetPasswordSuccessful;
-            $status = true;
         } catch (\Throwable $th) {
             $message = \do_hook('redirect.message', LANG::$resetPasswordFailed, $th->getMessage());
-            $status = false;
-        } finally {
-            $this->redirect->with($message, $status)->back();
+            return ['status' => true, 'message' => $message];
         }
+        return ['status' => true, 'message' => LANG::$resetPasswordSuccessful];
     }
 
     /**
      * Reset Security Code on Request
      * @param array $client Single Client Details
-     * @return void
+     * @return array
      */
-    public function resetSecurityCode(array $client): void
+    public function resetSecurityCode(array $client): array
     {
         // Check Staff Has Access
         if (!admin_access('client.update')) {
-            $this->redirect->with(LANG::$permissionDenied, false)->back();
+            return ['status' => false, 'message' => LANG::$permissionDenied];
         }
 
         // Get Inputs
@@ -328,24 +329,18 @@ class ClientFactory extends Factory
 
         // Validate UUID
         if ($client['uuid'] !== $inputs['uuid']) {
-            $this->redirect->with(LANG::$generalError, false)->back();
+            return ['status' => false, 'message' => LANG::$generalError];
         }
-
-        // Validate CSRF Token
-        \do_hook('csrf.validate', ADMIN);
 
         try {
             $obj = new Security();
             $where = ['client' => $client['id'], 'entity' => 'code'];
             $obj->where($where)->update(['data' => mt_rand(100000, 999999)]);
-            $message = LANG::$resetSecurityCodeSuccessful;
-            $status = true;
         } catch (\Throwable $th) {
             $message = \do_hook('redirect.message', LANG::$resetSecurityCodeFailed, $th->getMessage());
-            $status = false;
-        } finally {
-            $this->redirect->with($message, $status)->back();
+            return ['status' => false, 'message' => $message];
         }
+        return ['status' => true, 'message' => LANG::$resetSecurityCodeSuccessful];
     }
 
     /**
@@ -372,12 +367,6 @@ class ClientFactory extends Factory
                 'status' => false,
                 'message' => LANG::$generalError
             ];
-        }
-
-        // Validate CSRF Token
-        $csrfMessage = do_hook('csrf.validate', ADMIN);
-        if (!$csrfMessage['status']) {
-            return $csrfMessage;
         }
 
         // Validate & Update Data
