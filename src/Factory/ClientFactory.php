@@ -21,6 +21,7 @@ use Laika\App\Model\ClientNote;
 use Laika\App\Model\Security;
 use Laika\App\Model\Country;
 use Laika\App\Model\Address;
+use Laika\Core\Helper\Date;
 use Laika\App\Model\Client;
 use Laika\App\Model\Staff;
 use LBM\Support\ChangeLog;
@@ -136,9 +137,116 @@ class ClientFactory extends Factory
         if (!admin_access('client.create')) {
             return ['status' => false, 'message' => LANG::$permissionDenied];
         }
-        // Get Inputs
-        $inputs = $this->request->inputs();
-        show($inputs, true);
+
+        // Get Countries List
+        $countries = call_user_func([new Country(), 'list']);
+
+        // Validate & Update Data
+        $this->request->validate([
+            'fname' => 'required|min:1|max:50',
+            'lname' => 'required|min:1|max:50',
+            'username' => 'required|min:6|max:50',
+            'password' => 'required|min:6',
+            'cpassword' => 'required|min:6|match:password',
+            'email' => 'required|email',
+            'address_1' => 'required|min:1|max:255',
+            'country' => 'required|in:' . implode(',', array_keys($countries)),
+        ], [
+            'fname.required' => LANG::$requiredField,
+            'fname.min' => sprintf(LANG::$minLength, 1),
+            'fname.max' => sprintf(LANG::$maxLength, 50),
+            'lname.required' => LANG::$requiredField,
+            'lname.min' => sprintf(LANG::$minLength, 1),
+            'lname.max' => sprintf(LANG::$maxLength, 50),
+            'username.required' => LANG::$requiredField,
+            'username.min' => sprintf(LANG::$minLength, 6),
+            'username.max' => sprintf(LANG::$maxLength, 50),
+            'password.required' => LANG::$requiredField,
+            'password.min' => sprintf(LANG::$minLength, 6),
+            'cpassword.required' => LANG::$requiredField,
+            'cpassword.min' => sprintf(LANG::$minLength, 6),
+            'cpassword.match' => LANG::$cpasswordNotMatchd,
+            'email.required' => LANG::$requiredField,
+            'email.email' => LANG::$invalidEmail,
+            'address_1.required' => LANG::$requiredField,
+            'address_1.min' => sprintf(LANG::$minLength, 1),
+            'address_1.max' => sprintf(LANG::$maxLength, 255),
+        ]);
+
+        // Set Form Errors
+        FormError::add($this->request->errors());
+
+        // Return if Form Has Error
+        if (FormError::hasError()) {
+            return null;
+        }
+
+        // Insert Client
+        try {
+            $this->model->transaction(function ($m) {
+                // Get Inputs
+                $inputs = $this->request->inputs();
+                // Make Date Object
+                $date = new Date(timezone:\do_hook('option', 'time.zone'));
+
+                // Get Insert User Data
+                $user_data = [
+                    'uuid' => $this->model->uuid(),
+                    'fname' => $inputs['fname'],
+                    'lname' => $inputs['lname'],
+                    'username' => $inputs['username'],
+                    'email' => $inputs['email'],
+                    'lname' => $inputs['lname'],
+                    'companyname' => $inputs['companyname'] ?? NULL,
+                    'hash' => bin2hex(random_bytes(64)),
+                    'email_verify_token' => bin2hex(random_bytes(32)),
+                    'token_expire' => $date->setTimestamp(time() + 900)->format(),
+                    'status' => 'inactive',
+                    'emailstatus' => 'unverified',
+                    'country' => $inputs['country'],
+                    'created' => $date->setTimestamp(time())->format()
+                ];
+
+                // Insert & Get Client ID
+                $id = $m->insert($user_data);
+
+                // Throw Error if Client Insertion Failed
+                if ($id === false) {
+                    throw new \Exception("Insert Client Failed!");
+                }
+
+                // Get Address Data
+                $address_data = [
+                    'address_1' => $inputs['address_1'],
+                    'address_2' => $inputs['address_2'],
+                    'state' => $inputs['state'] ?? NULL,
+                    'city' => $inputs['city'] ?? NULL,
+                    'zip' => $inputs['zip'] ?? NULL,
+                    'country' => $inputs['country'],
+                    'type' => 'client',
+                    'relid' => $id,
+                    'profile_default' => 'yes',
+                    'created' => $date->format()
+                ];
+
+                // Get Security Data
+                $security_data = [
+                    'client' => $id,
+                    'entity' => 'code',
+                    'data' => mt_rand(100000, 999999)
+                ];
+
+                // Insert Address & Security
+                call_user_func([new Address(), 'insert'], $address_data);
+                call_user_func([new Security(), 'insert'], $security_data);
+
+            });
+            // Return Success Message
+            return ['status' => true, 'message' => LANG::$addClientSuccess];
+        } catch (\Throwable $th) {
+            $message = \do_hook('redirect.message', LANG::$addClientFailed, $th->getMessage());
+            return ['status' => false, 'message' => $message];
+        }
 
         return null;
     }
@@ -187,11 +295,11 @@ class ClientFactory extends Factory
             'fname.required' => LANG::$requiredField,
             'fname.min' => sprintf(LANG::$minLength, 3),
             'fname.max' => sprintf(LANG::$maxLength, 50),
-            'email.required' => LANG::$requiredField,
-            'email.email' => LANG::$invalidEmail,
             'lname.required' => LANG::$requiredField,
             'lname.min' => sprintf(LANG::$minLength, 3),
             'lname.max' => sprintf(LANG::$maxLength, 50),
+            'email.required' => LANG::$requiredField,
+            'email.email' => LANG::$invalidEmail,
             'status.required' => LANG::$requiredField,
             'status.in' => LANG::$invalidOption,
             'address_1.required' => LANG::$requiredField,

@@ -29,9 +29,6 @@ Router::group(ADMIN, function(){
     // Single Client
     Router::get('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client')->name('staff.client');
     Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client');
-    // Create Client
-    Router::get('/new-client', 'Admin\Client@create')->middleware('Admin\AddClient')->name('staff.add-client');
-    // Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\Client@client')->middleware('Admin\Client');
 
     // Ticket
     Router::get('/tickets', function(){})->name('staff.tickets');
@@ -49,5 +46,13 @@ Router::group(ADMIN, function(){
     // Others
     Router::get('/my-account', function(){})->name('staff.account');
     Router::get('/settings', function(){})->name('settings');
+
+},['Admin\\Common','Admin\\StaffValidator']);
+
+// Admin Add Route Group
+Router::group(ADMIN . '/add', function(){
+    // Add Client
+    Router::get('client', 'Admin\Client@create')->middleware('Admin\AddClient')->name('staff.add-client');
+    Router::post('client', 'Admin\Client@create')->middleware('Admin\AddClient');
 
 },['Admin\\Common','Admin\\StaffValidator']);
