@@ -22,8 +22,7 @@ use Laika\App\Model\Security;
 use Laika\App\Model\Country;
 use Laika\App\Model\Address;
 use Laika\Core\Helper\Date;
-use Laika\App\Model\Client;
-use Laika\App\Model\Staff;
+use Laika\Core\Regex\Regex;
 use LBM\Support\ChangeLog;
 use LBM\Support\FormError;
 use LBM\Abstract\Factory;
@@ -46,36 +45,13 @@ class ClientFactory extends Factory
      */
     public function first(int|string $entity): array
     {
-        $entity = \htmlspecialchars($entity);
-        $where = [
-            'id'        =>  $entity,
-            'uuid'      =>  $entity,
-            'username'  =>  $entity,
-            'email'     =>  $entity
-        ];
+        $result = \do_hook('client.single', $entity);
 
-        // Get Client
-        $client = $this->model->where($where, '=', 'OR')->first();
-
-        // Get Other Related Values
-        if (!empty($client)) {
-            // Get Status
-            $client['status'] = (new ClientStatus())->select('entity,color')->where(['entity' => $client['status']])->first();
-
-            // Client Notes
-            $client['notes'] = (new ClientNote())->select('note,staff,created')->where(['relid' => $client['id']])->order('id', 'DESC')->get();
-
-            // Get Address
-            $client['address'] = (new Address())->select('address_1,address_2,city,state,zip,country')->where(['type' => 'client', 'relid' => $client['id']])->first();
-
-            // Get Note Staffs
-            $staff = new Staff();
-            foreach ($client['notes'] as $k => $note) {
-                $client['notes'][$k]['staff'] = $staff->select('uuid,username')->where(['id' => $note['staff']])->first();
-            }
+        // Redirect to Clients if No Client Found
+        if (empty($result)) {
+            $this->redirect->with(LANG::$noClientFound, false)->to('staff.clients');
         }
-
-        return $client;
+        return $result;
     }
 
     /**
@@ -83,48 +59,22 @@ class ClientFactory extends Factory
      */
     public function limit(): array
     {
-        // Get Input
-        $input = \do_hook('request.input', 'client');
+        $result = \do_hook('client.limit');
 
-        // Get Model Object for Total Clients
-        $total = (new Client())->select($this->model->id);
-        if (!empty($input)) {
-            $input = "^{$input}";
-            $where = [
-                'fname' => $input,
-                'lname' => $input,
-                'username' => $input,
-                'email' => $input,
-                'status' => $input,
-                'country' => $input,
-                'companyname' => $input
-            ];
-            // Extend Total Client Model
-            $total = $total->where($where, 'REGEXP', 'OR');
-            // Extend Client Model
-            $this->model = $this->model->where($where, 'REGEXP', 'OR');
-        } else {
-            // Extend Total Client Model
-            $total = $total->where($this->queries());
-            // Extend Client Model
-            $this->model = $this->model->where($this->queries());
+        // Check 'clients' Keys Exists
+        if (!isset($result['clients'])) {
+            throw new \ArgumentCountError("Not Returned [clients] Key in client.get Hook");
+        }
+        // Check 'total' Keys Exists
+        if (!isset($result['total'])) {
+            throw new \ArgumentCountError("Not Returned [total] Key in client.get Hook");
         }
 
-        // Return Result
-        $clients = $this->model->select()->limit($this->limit)->offset($this->page)->get();
-        // Set Total Client
-        $this->total = $total->count();
-
-        // Get Related Values
-        if (!empty($clients)) {
-            $smodel = new ClientStatus();
-            foreach ($clients as $k => $client) {
-                // Get Status
-                $clients[$k]['status'] = $smodel->select('entity,color')->where(['entity' => $client['status']])->first();
-            }
+        // Set Message if Empty
+        if (empty($result['clients'])) {
+            \do_hook('message.set', LANG::$noClientsFound, false);
         }
-
-        return $clients;
+        return $result;
     }
 
     /**
@@ -145,9 +95,9 @@ class ClientFactory extends Factory
         $this->request->validate([
             'fname' => 'required|min:1|max:50',
             'lname' => 'required|min:1|max:50',
-            'username' => 'required|min:6|max:50',
-            'password' => 'required|min:6',
-            'cpassword' => 'required|min:6|match:password',
+            'username' => 'required|min:6|max:50|regex:/^[a-zA-Z0-9]+$/i',
+            'password' => 'required',
+            'cpassword' => 'required',
             'email' => 'required|email',
             'address_1' => 'required|min:1|max:255',
             'country' => 'required|in:' . implode(',', array_keys($countries)),
@@ -161,6 +111,7 @@ class ClientFactory extends Factory
             'username.required' => LANG::$requiredField,
             'username.min' => sprintf(LANG::$minLength, 6),
             'username.max' => sprintf(LANG::$maxLength, 50),
+            'username.regex' => LANG::$unsupportedCharacter,
             'password.required' => LANG::$requiredField,
             'password.min' => sprintf(LANG::$minLength, 6),
             'cpassword.required' => LANG::$requiredField,
@@ -174,7 +125,49 @@ class ClientFactory extends Factory
         ]);
 
         // Set Form Errors
-        FormError::add($this->request->errors());
+        FormError::addBulk($this->request->errors());
+
+        // Check User Doesn't Exists
+        $username = $this->request->input('username');
+        if ($this->model->select('username')->where(['username' => $username])->first()) {
+            FormError::add('username', LANG::$alreadyExists);
+        }
+        if ($this->model->select('email')->where(['email' => $username])->first()) {
+            FormError::add('email', LANG::$alreadyExists);
+        }
+
+        $password = $this->request->input('password');
+        $password_char_limit = \do_hook('option.int', 'password.char.limit', 6);
+        $password_upper_required = \do_hook('option.bool', 'password.upper.required', false);
+        $password_lower_required = \do_hook('option.bool', 'password.lower.required', false);
+        $password_numeric_required = \do_hook('option.bool', 'password.numeric.required', false);
+        $password_special_required = \do_hook('option.bool', 'password.special.required', false);
+
+        // Validate Password
+        $regex = new Regex();
+        if ($regex->validate('minimum', $password, $password_char_limit)) {
+            FormError::add('password', sprintf(LANG::$minLength, $password_char_limit));
+        }
+        if (\do_hook('option.bool', 'password.upper.required', false)) {
+            if ($regex->validate('hasupper', $password)) {
+                FormError::add('password', LANG::$upperCharRequired);
+            }
+        }
+        if (\do_hook('option.bool', 'password.lower.required', false)) {
+            if ($regex->validate('haslower', $password)) {
+                FormError::add('password', LANG::$lowerCharRequired);
+            }
+        }
+        if (\do_hook('option.bool', 'password.numeric.required', false)) {
+            if ($regex->validate('hasnumeric', $password)) {
+                FormError::add('password', LANG::$numericRequired);
+            }
+        }
+        if (\do_hook('option.bool', 'password.special.required', false)) {
+            if ($regex->validate('hasspecial', $password)) {
+                FormError::add('password', LANG::$specialCharRequired);
+            }
+        }
 
         // Return if Form Has Error
         if (FormError::hasError()) {
@@ -184,10 +177,11 @@ class ClientFactory extends Factory
         // Insert Client
         try {
             $this->model->transaction(function ($m) {
-                // Get Inputs
-                $inputs = $this->request->inputs();
                 // Make Date Object
                 $date = new Date(timezone:\do_hook('option', 'time.zone'));
+
+                // Get Inputs
+                $inputs = $this->request->inputs();
 
                 // Get Insert User Data
                 $user_data = [
@@ -308,7 +302,7 @@ class ClientFactory extends Factory
         ]);
 
         // Set Form Errors
-        FormError::add($this->request->errors());
+        FormError::addBulk($this->request->errors());
 
         // Return if Form Has Error
         if (FormError::hasError()) {

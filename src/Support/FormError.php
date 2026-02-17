@@ -44,13 +44,25 @@ class FormError
     }
 
     /**
-     * Add Form Error
-     * @param array $errors Form Errors
+     * Add Bulk Errors
+     * @param array{int:array} $errors Form Errors
      * @return void
      */
-    public static function add(array $errors): void
+    public static function addBulk(array $errors): void
     {
-        self::instance()->errors = $errors;
+        self::instance()->errors = \array_merge(self::instance()->errors, $errors);
+        return;
+    }
+
+    /**
+     * Add Form Error
+     * @param string $key Form Error Key
+     * @param string $error Error Message
+     * @return void
+     */
+    public static function add(string $key, string $error): void
+    {
+        self::instance()->errors[$key][] = $error;
         return;
     }
 

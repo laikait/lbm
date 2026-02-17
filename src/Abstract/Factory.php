@@ -108,7 +108,7 @@ abstract class Factory
      * Match Database Columns with Queries
      * @return array
      */
-    protected function queries(): array
+    public function queries(): array
     {
         $queries = [];
         $inputs = \do_hook('request.inputs');

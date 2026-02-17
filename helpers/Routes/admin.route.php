@@ -56,3 +56,11 @@ Router::group(ADMIN . '/add', function(){
     Router::post('client', 'Admin\Client@create')->middleware('Admin\AddClient');
 
 },['Admin\\Common','Admin\\StaffValidator']);
+
+Router::get('test', function(){
+    $model = new Laika\Model\Model();
+    echo $model->table('sample')->where(['id' => 7], '<', 'AND')->where(['created' => 3456], '>', 'OR')->debug();
+
+    // $reg = new \Laika\Core\Regex\Regex();
+    // dd($reg->validate('password', $password, 18, true, true, true, true));
+});

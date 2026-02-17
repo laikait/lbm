@@ -26,8 +26,8 @@ add_hook('option', function(string $entity, mixed $default = ''){
  * @param string $entity DB Option entity
  * @return int
  */
-add_hook('option.int', function(string $entity): int{
-    return (int) \do_hook('option', $entity, 0);
+add_hook('option.int', function(string $entity, int $default = 0): int{
+    return (int) \do_hook('option', $entity, $default);
 }, 1000);
 
 /**
@@ -95,21 +95,6 @@ add_hook('log.url', function (string $label, string $named, array $param = []) {
 }, 1000);
 
 /*============================= MESSAGE HOOKS =============================*/
-/**
- * Get Notification Message
- */
-// add_hook('message.get', function(): string {
-//     $m = do_hook('message.show');
-//     if(!$m) {
-//         return '';
-//     }
-//     // Return Success Message
-//     if ($m['status']) {
-//         return "<div id=\"app-success-message\">{$m['info']}</div>";
-//     }
-//     return "<div id=\"app-error-message\">{$m['info']}</div>";
-// }, 1000);
-
 /**
  * Create Redirect Message
  */
