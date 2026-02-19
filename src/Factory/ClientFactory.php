@@ -97,7 +97,7 @@ class ClientFactory extends Factory
             'lname' => 'required|min:1|max:50',
             'username' => 'required|min:6|max:50|regex:/^[a-zA-Z0-9]+$/i',
             'password' => 'required',
-            'cpassword' => 'required',
+            'cpassword' => 'required|match:password',
             'email' => 'required|email',
             'address_1' => 'required|min:1|max:255',
             'country' => 'required|in:' . implode(',', array_keys($countries)),
@@ -138,33 +138,29 @@ class ClientFactory extends Factory
 
         $password = $this->request->input('password');
         $password_char_limit = \do_hook('option.int', 'password.char.limit', 6);
-        $password_upper_required = \do_hook('option.bool', 'password.upper.required', false);
-        $password_lower_required = \do_hook('option.bool', 'password.lower.required', false);
-        $password_numeric_required = \do_hook('option.bool', 'password.numeric.required', false);
-        $password_special_required = \do_hook('option.bool', 'password.special.required', false);
 
         // Validate Password
         $regex = new Regex();
-        if ($regex->validate('minimum', $password, $password_char_limit)) {
+        if (!$regex->validate('minimum', $password, $password_char_limit)) {
             FormError::add('password', sprintf(LANG::$minLength, $password_char_limit));
         }
         if (\do_hook('option.bool', 'password.upper.required', false)) {
-            if ($regex->validate('hasupper', $password)) {
+            if (!$regex->validate('hasupper', $password)) {
                 FormError::add('password', LANG::$upperCharRequired);
             }
         }
         if (\do_hook('option.bool', 'password.lower.required', false)) {
-            if ($regex->validate('haslower', $password)) {
+            if (!$regex->validate('haslower', $password)) {
                 FormError::add('password', LANG::$lowerCharRequired);
             }
         }
         if (\do_hook('option.bool', 'password.numeric.required', false)) {
-            if ($regex->validate('hasnumeric', $password)) {
+            if (!$regex->validate('hasnumeric', $password)) {
                 FormError::add('password', LANG::$numericRequired);
             }
         }
         if (\do_hook('option.bool', 'password.special.required', false)) {
-            if ($regex->validate('hasspecial', $password)) {
+            if (!$regex->validate('hasspecial', $password)) {
                 FormError::add('password', LANG::$specialCharRequired);
             }
         }
@@ -245,14 +241,14 @@ class ClientFactory extends Factory
         return null;
     }
 
-    /**
-     * Get Total Client
-     * @return int
-     */
-    public function total(): int
-    {
-        return $this->total ?? 0;
-    }
+    // /**
+    //  * Get Total Client
+    //  * @return int
+    //  */
+    // public function total(): int
+    // {
+    //     return $this->total ?? 0;
+    // }
 
     /**
      * Update on Request

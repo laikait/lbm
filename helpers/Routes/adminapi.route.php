@@ -31,4 +31,4 @@ Router::group(ADMIN.'/api', function(){
         $api->send([], 404);
         return;
     }, ADMIN.'/api');
-});
+}, ['CommonAdminApi']);

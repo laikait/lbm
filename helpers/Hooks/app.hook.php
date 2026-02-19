@@ -106,12 +106,12 @@ add_hook('redirect.message', function (string $userMesssage, string $exceptionMe
 /**
  * Option is Selected
  * @param string $key Request Key Name. Example: 'status'
- * @param string $existing Existing Value. Example: 'active'
- * @param string $match Match Value (Changable as per loop); Example: 'active'
+ * @param ?string $existing Existing Value. Example: 'active'
+ * @param ?string $match Match Value (Changable as per loop); Example: 'active'
  * @return string
  */
-add_hook('selected', function(string $key, string $existing, string $match): string {
-    return (do_hook('request.input', $key, $existing)) === $match ? 'selected' : '';
+add_hook('selected', function(string $key, ?string $existing, ?string $match): string {
+    return (do_hook('request.input', $key, (string) $existing)) === (string) $match ? 'selected' : '';
 }, 1000);
 
 /**
@@ -166,3 +166,19 @@ add_hook('app.copyright', function(string $class = 'app-text-secondary'): string
 add_hook('app.poweredby', function(string $class = 'app-text-secondary'): string {
     return do_hook('option.bool', 'poweredby') ? "Powered By <a class=\"{$class}\" target=\"_blank\" href=\"https://laikait.com\">Laika IT</a>" : '';
 });
+
+/*================================ CSRF ================================*/
+/**
+ * CSRF Field
+ */
+add_hook('csrf.field.admin', function (): string{
+    return do_hook('csrf.field', ADMIN);
+}, 1000);
+
+/*========================== TEMPLATE FILTERS ==========================*/
+/**
+ * Admin template Name
+ */
+add_hook('admin.template', function(){
+    return 'admin/' . do_hook('option', 'admin.template', 'default');
+}, 1000);

@@ -20,7 +20,7 @@ use Laika\App\Model\ClientStatus;
  * Get Limit Clients
  * @return array
  */
-add_hook('client.limit', function(): array {
+add_hook('client.limit', function(string $asc = 'ASC'): array {
     // Get Input
     $input = do_hook('request.input', 'client');
     $model = new Client();
@@ -55,12 +55,13 @@ add_hook('client.limit', function(): array {
     $limit = (int) do_hook('option.int', 'data.limit', 20);
 
     // Return Result
-    $result['clients'] = $model->select()->limit($limit)->offset($page)->get();
+    $result['clients'] = $model->select()->limit($limit)->offset($page)->order($model->id, $asc)->get();
+
     // Set Total Client
     $result['total'] = $total->count();
 
     // Get Related Values
-    if (!empty($result)) {
+    if (!empty($result['clients'])) {
         $smodel = new ClientStatus();
         foreach ($result['clients'] as $k => $client) {
             // Get Status
@@ -92,13 +93,13 @@ add_hook('client.single', function(int|string $entity): array {
     // Get Other Related Values
     if (!empty($result)) {
         // Get Status
-        $result['status'] = (new ClientStatus())->select('entity,color')->where(['entity' => $result['status']])->first();
+        $result['status'] = do_hook('client.status', $result['status']);
 
         // Client Notes
-        $result['notes'] = (new ClientNote())->select('note,staff,created')->where(['relid' => $result['id']])->order('id', 'DESC')->get();
+        $result['notes'] = do_hook('client.notes', $result['id'], $model->id, 'DESC');
 
         // Get Address
-        $result['address'] = (new Address())->select('address_1,address_2,city,state,zip,country')->where(['type' => 'client', 'relid' => $result['id']])->first();
+        $result['address'] = do_hook('address.profile', $result['id'], 'client');
 
         // Get Note Staffs
         $staff = new Staff();
@@ -106,6 +107,25 @@ add_hook('client.single', function(int|string $entity): array {
             $result['notes'][$k]['staff'] = $staff->select('uuid,username')->where(['id' => $note['staff']])->first();
         }
     }
-
     return $result;
+});
+
+/**
+ * Get Client Notes
+ * @param int|string $relid Client RelId
+ * @param string $order Order By Column.
+ * @param string $order Order By ASC/DESC. Default is DESC
+ * @return array
+ */
+add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'ASC'): array {
+    return (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+});
+
+/**
+ * Get Client Status
+ * @param string $entity Client Status Entity
+ * @return array
+ */
+add_hook('client.status', function (string $entity): array {
+    return (new ClientStatus())->select('entity,color')->where(['entity' => $entity])->first();
 });
