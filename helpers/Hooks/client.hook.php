@@ -10,10 +10,10 @@ declare(strict_types=1);
 
 use Laika\App\Model\Staff;
 use Laika\App\Model\Client;
-use Laika\App\Model\Address;
 use LBM\Factory\ClientFactory;
 use Laika\App\Model\ClientNote;
 use Laika\App\Model\ClientStatus;
+use Laika\App\Model\ClientActivity;
 
 /*============================= CLIENT HOOKS =============================*/
 /**
@@ -96,12 +96,16 @@ add_hook('client.single', function(int|string $entity): array {
         $result['status'] = do_hook('client.status', $result['status']);
 
         // Client Notes
-        $result['notes'] = do_hook('client.notes', $result['id'], $model->id, 'DESC');
+        $result['notes'] = do_hook('client.notes', $result['id']);
 
         // Get Address
         $result['address'] = do_hook('address.profile', $result['id'], 'client');
 
+        // Get Activities
+        $result['activities'] = do_hook('client.activities.limit', $result['id']);
+
         // Get Note Staffs
+        // Edit it With Hook Function =======================================================
         $staff = new Staff();
         foreach ($result['notes'] as $k => $note) {
             $result['notes'][$k]['staff'] = $staff->select('uuid,username')->where(['id' => $note['staff']])->first();
@@ -117,7 +121,7 @@ add_hook('client.single', function(int|string $entity): array {
  * @param string $order Order By ASC/DESC. Default is DESC
  * @return array
  */
-add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'ASC'): array {
+add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
     return (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
 });
 
@@ -128,4 +132,34 @@ add_hook('client.notes', function (int|string $relid, string $column = 'id', str
  */
 add_hook('client.status', function (string $entity): array {
     return (new ClientStatus())->select('entity,color')->where(['entity' => $entity])->first();
+});
+
+/**
+ * Get Client Statuses
+ * @return array
+ */
+add_hook('client.status.list', function (): array {
+    $statuses = (new ClientStatus())->select('entity,color')->get();
+    return array_column($statuses, 'color', 'entity');
+});
+
+/**
+ * Get Client Limit Activities
+ * @param int|string $relid Client Entity
+ * @param string $column Column to Order By. Default is id
+ * @param string $order Order By ASC/DESC. Default is DESC
+ * @throws InvalidArgumentException
+ * @return array
+ */
+add_hook('client.activities.limit', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
+    // Throw InvalidArgumentException if Order By Value is Invalid
+    if (!in_array(strtolower($order), ['asc', 'desc'])) {
+        throw new InvalidArgumentException("Invalid Order By Value. Allowed Values are ASC or DESC");
+    }
+    // Get Activities
+    $activities = (new ClientActivity())->where(['relid' => (int) $relid])->order($column, $order)->get();
+    foreach ($activities as $k => $activity) {
+        $activities[$k]['changes'] = unserialize($activity['changes']);
+    }
+    return $activities;
 });

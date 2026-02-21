@@ -9,9 +9,9 @@
 declare(strict_types=1);
 
 use Laika\App\Model\Staff;
-use Laika\App\Model\Client;
 
 /*============================= CLIENT HOOKS =============================*/
+/*============================= REMOVE IT =============================*/
 /**
  * Get Note Staff
  * @param int|string $entity Entity to Get Value.

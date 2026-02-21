@@ -19,31 +19,21 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 class ChangeLog
 {
     /**
-     * @var array $logs Change logs
-     */
-    private array $logs = [];
-
-    /**
+     * Check Change Logs
      * @param array $existing Existing Value
      * @param array $input New Input Value
+     * @return array
      */
-    public function __construct(array $existing, array $input)
+    public function check(array $existing, array $input): array
     {
-        // Check & Register Changes
+        $changes = [];
+        // Check Changes
         foreach ($input as $key => $new) {
             $old = $existing[$key] ?? '';
             if ($old !== $new) {
-                $this->logs[$key] = ['old' => $old, 'new' => $new];
+                $changes[$key] = ['old' => $old, 'new' => $new];
             }
         }
-    }
-
-    /**
-     * Get Logs
-     * @return ?array
-     */
-    public function logs(): array
-    {
-        return $this->logs;
+        return $changes;
     }
 }
