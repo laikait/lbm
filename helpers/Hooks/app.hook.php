@@ -133,7 +133,7 @@ add_hook('csrf.validate', function(string $type): array {
  * @return string
  */
 add_hook('form.error', function(string $key): string {
-    $errors = \LBM\Support\FormError::get($key);
+    $errors = \Laika\Core\Http\FormError::get($key);
     return $errors[0] ?? '';
 });
 

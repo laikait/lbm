@@ -34,19 +34,19 @@ class AddressFactory extends Factory
     }
 
     /**
-     * @param int|string $entity
-     * @return array
+     * @return ?array
      */
-    public function first(int|string $entity): array
+    public function create(): ?array
     {
-        return [];
+        return ['status' => true, 'message' => 'Address Created Successfully!'];
     }
 
     /**
-     * Get Limit Address
+     * @param array $data Data to Update Address
+     * @return ?array
      */
-    public function limit(): array
+    public function update(array $data): ?array
     {
-        return [];
+        return ['status' => true, 'message' => 'Address Updated Successfully!'];
     }
 }

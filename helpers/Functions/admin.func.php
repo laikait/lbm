@@ -26,11 +26,11 @@ function staff(): ?array
  * CHeck Admin Has Access
  * @param string $access Access Name. Example: 'product.read'
  */
-function admin_access(string $access): bool // Complete it Later
+function admin_access(string $access): bool
 {
     $user = staff();
     $parts = explode('.', $access);
     $name = $parts[0];
-    $action = $parts[1] ?? 'unknown';
-    return (isset($user['role']['entities'][$name][$action]) && $user['role']['entities'][$name][$action]);
+    $action = strtolower($parts[1] ?? 'unknown');
+    return $user['role']['entities'][$name][$action] ?? false;
 }

@@ -78,30 +78,17 @@ abstract class Factory
     }
 
     /**
-     * Get Row by Request
-     * @param int|string $entity Entity to Get Value.
-     * @return array
+     * Update Rows by Request
+     * @return ?array
      */
-    abstract public function first(int|string $entity): array;
-
-    /**
-     * Get Rows by Request
-     * @return array
-     */
-    abstract public function limit(): array;
+    abstract public function create(): ?array;
 
     /**
      * Update Rows by Request
-     * @param array $where Where Condition
-     * @param array $data Data to Update
-     * @return int
+     * @param array $existing Existing Data to Compare With Request Data
+     * @return ?array
      */
-    public function update(array $where, array $data): int
-    {
-        return $this->model->transaction(function ($m) use($where, $data) {
-            return $m->where($where)->update($data);
-        });
-    }
+    abstract public function update(array $existing): ?array;
 
     /*============================ INTERNAL API ============================*/
     /**
@@ -111,7 +98,7 @@ abstract class Factory
     public function queries(): array
     {
         $queries = [];
-        $inputs = \do_hook('request.inputs');
+        $inputs = $this->request->inputs();
         // Get Accepted Query Values
         foreach($inputs as $k => $v) {
             if (in_array($k, $this->acceptedQueries)) {

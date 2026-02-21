@@ -16,14 +16,14 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use Laika\App\Model\StaffActivity;
 use Laika\App\Model\ClientNote;
+use Laika\Core\Http\FormError;
+use Laika\Core\Http\ChangeLog;
 use Laika\App\Model\Security;
-use Laika\App\Model\Country;
 use Laika\App\Model\Address;
 use Laika\Core\Helper\Date;
 use Laika\Core\Regex\Regex;
-use LBM\Support\ChangeLog;
-use LBM\Support\FormError;
 use LBM\Abstract\Factory;
 use LANG;
 
@@ -38,62 +38,6 @@ class ClientFactory extends Factory
     }
 
     /**
-     * Get Single Client
-     * @param int|string $entity Entity to Get Value.
-     * @return array
-     */
-    public function first(int|string $entity): array
-    {
-        $result = \do_hook('client.single', $entity);
-
-        // Check 'notes' Keys Exists
-        if (!isset($result['notes'])) {
-            throw new \ArgumentCountError("[notes] Key Not Returned");
-        }
-        // Check 'activities' Keys Exists
-        if (!isset($result['activities'])) {
-            throw new \ArgumentCountError("[activities] Key Not Returned");
-        }
-        // Check 'address' Keys Exists
-        if (!isset($result['address']) || !is_array($result['address'])) {
-            throw new \ArgumentCountError("[address] Key Not Returned or ['address'] Is Not An Array");
-        }
-        // Check 'status' Keys Exists & Array
-        if (!isset($result['status']) || !is_array($result['status'])) {
-            throw new \ArgumentCountError("[status] Key Not Returned or ['status'] Is Not An Array");
-        }
-
-        // Redirect to Clients if No Client Found
-        if (empty($result)) {
-            $this->redirect->with(LANG::$noClientFound, false)->to('staff.clients');
-        }
-        return $result;
-    }
-
-    /**
-     * Get Limit Clients
-     */
-    public function limit(): array
-    {
-        $result = \do_hook('client.limit');
-
-        // Check 'clients' Keys Exists
-        if (!isset($result['clients'])) {
-            throw new \ArgumentCountError("Not Returned [clients] Key in client.limit Hook");
-        }
-        // Check 'total' Keys Exists
-        if (!isset($result['total'])) {
-            throw new \ArgumentCountError("Not Returned [total] Key in client.limit Hook");
-        }
-
-        // Set Message if Empty
-        if (empty($result['clients'])) {
-            \do_hook('message.set', LANG::$noClientsFound, false);
-        }
-        return $result;
-    }
-
-    /**
      * Create New Client
      * @return ?array
      */
@@ -105,10 +49,10 @@ class ClientFactory extends Factory
         }
 
         // Get Countries List
-        $countries = call_user_func([new Country(), 'list']);
+        $countries = \do_hook('country.list');
 
         // Validate & Update Data
-        $this->request->validate([
+        $rules = [
             'fname' => 'required|min:1|max:50',
             'lname' => 'required|min:1|max:50',
             'username' => 'required|min:6|max:50|regex:/^[a-zA-Z0-9]+$/i',
@@ -117,7 +61,8 @@ class ClientFactory extends Factory
             'email' => 'required|email',
             'address_1' => 'required|min:1|max:255',
             'country' => 'required|in:' . implode(',', array_keys($countries)),
-        ], [
+        ];
+        $rules_messages = [
             'fname.required' => LANG::$requiredField,
             'fname.min' => sprintf(LANG::$minLength, 1),
             'fname.max' => sprintf(LANG::$maxLength, 50),
@@ -138,7 +83,9 @@ class ClientFactory extends Factory
             'address_1.required' => LANG::$requiredField,
             'address_1.min' => sprintf(LANG::$minLength, 1),
             'address_1.max' => sprintf(LANG::$maxLength, 255),
-        ]);
+        ];
+
+        $this->request->validate($rules, $rules_messages);
 
         // Set Form Errors
         FormError::addBulk($this->request->errors());
@@ -182,7 +129,7 @@ class ClientFactory extends Factory
         }
 
         // Return if Form Has Error
-        if (FormError::hasError()) {
+        if (FormError::exists()) {
             return null;
         }
 
@@ -262,18 +209,18 @@ class ClientFactory extends Factory
      * @param array $client Single Client Details
      * @return ?array
      */
-    public function updateOnRequest(array $client): ?array
+    public function update(array $client): ?array
     {
         // Check Staff Has Access
         if (!\admin_access('client.update')) {
             return ['status' => false, 'message' => LANG::$permissionDenied];
         }
         // Get Inputs
-        $inputs = $this->request->inputs();
+        $inputs = \do_hook('request.inputs');
 
         // Validate UUID
-        if ($client['uuid'] !== $inputs['uuid']) {
-            return ['status' => false, 'message' => LANG::$generalError];
+        if (empty($client['uuid']) || empty($inputs['uuid']) || ($client['uuid'] !== $inputs['uuid'])) {
+            return ['status' => false, 'message' => LANG::$invalidUuid];
         }
 
         // Get Statuses & Countries List
@@ -281,14 +228,15 @@ class ClientFactory extends Factory
         $countries = \do_hook('country.list');
 
         // Validate & Update Data
-        $this->request->validate([
+        $rules = [
             'fname' => 'required|min:3|max:50',
             'lname' => 'required|min:3|max:50',
             'email' => 'required|email',
             'status' => 'required|in:' . \implode(',', \array_keys($statuses)),
             'address_1' => 'required|min:1|max:255',
             'country' => 'required|in:' . \implode(',', \array_keys($countries)),
-        ], [
+        ];
+        $rule_messages = [
             'fname.required' => LANG::$requiredField,
             'fname.min' => \sprintf(LANG::$minLength, 3),
             'fname.max' => \sprintf(LANG::$maxLength, 50),
@@ -302,16 +250,18 @@ class ClientFactory extends Factory
             'address_1.required' => LANG::$requiredField,
             'address_1.min' => \sprintf(LANG::$minLength, 1),
             'address_1.max' => \sprintf(LANG::$maxLength, 255),
-        ]);
+        ];
+        $this->request->validate($rules, $rule_messages);
 
         // Set Form Errors
         FormError::addBulk($this->request->errors());
 
         // Return if Form Has Error
-        if (FormError::hasError()) {
+        if (FormError::exists()) {
             return null;
         }
 
+        // Get Client Input
         $clientInput = [
             'fname' => $inputs['fname'],
             'lname' => $inputs['lname'],
@@ -320,6 +270,7 @@ class ClientFactory extends Factory
             'country' => $inputs['country']
         ];
 
+        // Existing Client Info
         $existingClientInfo = [
             'fname' => $client['fname'],
             'lname' => $client['lname'],
@@ -328,7 +279,7 @@ class ClientFactory extends Factory
             'country' => $client['address']['country']
         ];
 
-        // Update Address
+        // Get Address Input
         $addressInput = [
             'address_1' => $inputs['address_1'],
             'address_2' => $inputs['address_2'] ?? NULL,
@@ -337,6 +288,8 @@ class ClientFactory extends Factory
             'zip' => $inputs['zip'] ?? NULL,
             'country' => $inputs['country']
         ];
+
+        // Existing Address Info
         $existingAddress = $client['address'];
 
         // Check Has Changes
@@ -368,15 +321,23 @@ class ClientFactory extends Factory
                 $clientInput['updated'] = $addressInput['updated'] = \do_hook('date.format');
 
                 // Update Client
-                $this->update(['uuid' => $client['uuid']], $clientInput);
+                $this->model->transaction(function ($m) use($client, $clientInput) {
+                    // Update Client
+                    $m->where(['uuid' => $client['uuid']])->update($clientInput);
+                });
                 
                 // Set Address Where
                 $addressWhere = ['type' => 'client', 'relid' => $client['id'], 'profile_default' => 'yes'];
+
                 // Update Address
-                \call_user_func([new AddressFactory, 'update'], $addressWhere, $addressInput);
+                (new Address())->transaction(function ($m) use($addressWhere, $addressInput) {
+                    $m->where($addressWhere)->update($addressInput);
+                });
 
                 // Update Log
-                \call_user_func([new StaffFactory, 'createActivity'], $activity);
+                (new StaffActivity())->transaction(function ($m) use($activity) {
+                    $m->insert($activity);
+                });
 
                 return ['status' => true, 'message' => LANG::$clientUpdatedSuccessfully];
             } catch (\Throwable $th) {

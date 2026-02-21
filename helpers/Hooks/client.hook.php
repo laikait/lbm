@@ -55,21 +55,21 @@ add_hook('client.limit', function(string $asc = 'ASC'): array {
     $limit = (int) do_hook('option.int', 'data.limit', 20);
 
     // Return Result
-    $result['clients'] = $model->select()->limit($limit)->offset($page)->order($model->id, $asc)->get();
+    $result['clients'] = $model->limit($limit)->offset($page)->order($model->id, $asc)->get();
 
     // Set Total Client
     $result['total'] = $total->count();
 
     // Get Related Values
     if (!empty($result['clients'])) {
-        $smodel = new ClientStatus();
+        $statusModel = new ClientStatus();
         foreach ($result['clients'] as $k => $client) {
-            // Get Status
-            $result['clients'][$k]['status'] = $smodel->select('entity,color')->where(['entity' => $client['status']])->first();
+            // Set Status Details
+            $result['clients'][$k]['status'] = \do_hook('client.status', $client['status'], $statusModel);
         }
     }
     return $result;
-});
+}, 1000);
 
 /**
  * Get Single Client
@@ -84,35 +84,9 @@ add_hook('client.single', function(int|string $entity): array {
         'username'  =>  $entity,
         'email'     =>  $entity
     ];
-    // Client Model
-    $model = new Client();
-
-    // Get Client
-    $result = $model->where($where, '=', 'OR')->first();
-
-    // Get Other Related Values
-    if (!empty($result)) {
-        // Get Status
-        $result['status'] = do_hook('client.status', $result['status']);
-
-        // Client Notes
-        $result['notes'] = do_hook('client.notes', $result['id']);
-
-        // Get Address
-        $result['address'] = do_hook('address.profile', $result['id'], 'client');
-
-        // Get Activities
-        $result['activities'] = do_hook('client.activities.limit', $result['id']);
-
-        // Get Note Staffs
-        // Edit it With Hook Function =======================================================
-        $staff = new Staff();
-        foreach ($result['notes'] as $k => $note) {
-            $result['notes'][$k]['staff'] = $staff->select('uuid,username')->where(['id' => $note['staff']])->first();
-        }
-    }
-    return $result;
-});
+    // Return Client
+    return (new Client())->where($where, '=', 'OR')->first();
+}, 1000);
 
 /**
  * Get Client Notes
@@ -122,17 +96,23 @@ add_hook('client.single', function(int|string $entity): array {
  * @return array
  */
 add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
-    return (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
-});
+    $notes = (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+    $staff_model = new Staff();
+    foreach ($notes as $k => $note) {
+        $notes[$k]['staff'] = $staff_model->select('uuid,username')->where(['id' => $note['staff']])->first();
+    }
+    return $notes;
+}, 1000);
 
 /**
  * Get Client Status
  * @param string $entity Client Status Entity
+ * @param ?ClientStatus $model Optional ClientStatus Model to Avoid Multiple Instantiation. Default is null.
  * @return array
  */
-add_hook('client.status', function (string $entity): array {
-    return (new ClientStatus())->select('entity,color')->where(['entity' => $entity])->first();
-});
+add_hook('client.status', function (string $entity, ?ClientStatus $model = null): array {
+    return ($model ?? (new ClientStatus()))->select('entity,color')->where(['entity' => $entity])->first();
+}, 1000);
 
 /**
  * Get Client Statuses
@@ -141,7 +121,7 @@ add_hook('client.status', function (string $entity): array {
 add_hook('client.status.list', function (): array {
     $statuses = (new ClientStatus())->select('entity,color')->get();
     return array_column($statuses, 'color', 'entity');
-});
+}, 1000);
 
 /**
  * Get Client Limit Activities
@@ -162,4 +142,4 @@ add_hook('client.activities.limit', function (int|string $relid, string $column 
         $activities[$k]['changes'] = unserialize($activity['changes']);
     }
     return $activities;
-});
+}, 1000);
