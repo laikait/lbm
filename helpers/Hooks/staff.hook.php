@@ -9,8 +9,10 @@
 declare(strict_types=1);
 
 use Laika\App\Model\Staff;
+use Laika\App\Model\StaffNote;
 use Laika\App\Model\StaffRole;
 use Laika\App\Model\StaffStatus;
+use Laika\App\Model\StaffActivity;
 
 /*============================= STAFF HOOKS =============================*/
 /**
@@ -71,14 +73,11 @@ add_hook('staff.limit', function(string $asc = 'ASC'): array {
     // Set Total Staff
     $total = $count->count();
 
-    // Get Related Values
-    if (!empty($staffs)) {
-        $statusModel = new StaffStatus();
-        foreach ($staffs as $k => $staff) {
-            // Set Status Details
-            $staffs[$k]['status'] = \do_hook('staff.status', $staff['status'], $statusModel);
-        }
-    }
+    // Set Status Details
+    $statusModel = new StaffStatus();
+    array_filter($staffs, function ($staff, $k) use ($statusModel, $staffs) {
+        $staffs[$k]['status'] = \do_hook('staff.status', $staff['status'], $statusModel);
+    }, ARRAY_FILTER_USE_BOTH);
 
     return ['staffs' => $staffs, 'total' => $total];
 }, 1000);
@@ -103,3 +102,45 @@ add_hook('staff.role', function (string $role) {
 add_hook('staff.status', function (string $status, ?StaffStatus $model = null) {
     return ($model ??(new StaffStatus()))->select('entity,color')->where(['entity' => $status])->first();
 });
+
+/**
+ * Get Staff Statuses
+ * @return array
+ */
+add_hook('staff.status.list', function (): array {
+    $statuses = (new StaffStatus())->select('entity,color')->get();
+    return array_column($statuses, 'color', 'entity');
+}, 1000);
+
+/**
+ * Get Staff Limit Activities
+ * @param int|string $relid Staff Entity
+ * @param string $column Column to Order By. Default is id
+ * @param string $order Order By ASC/DESC. Default is DESC
+ * @throws \InvalidArgumentException
+ * @return array
+ */
+add_hook('staff.activities.limit', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
+    // Get Activities
+    $activities = (new StaffActivity())->where(['relid' => (int) $relid])->order($column, $order)->get();
+    foreach ($activities as $k => $activity) {
+        $activities[$k]['changes'] = unserialize($activity['changes']);
+    }
+    return $activities;
+}, 1000);
+
+/**
+ * Get Staff Notes
+ * @param int|string $relid Staff RelId
+ * @param string $order Order By Column.
+ * @param string $order Order By ASC/DESC. Default is DESC
+ * @return array
+ */
+add_hook('staff.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
+    $notes = (new StaffNote())->select('staff,title,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+    $staff_model = new Staff();
+    foreach ($notes as $k => $note) {
+        $notes[$k]['staff'] = $staff_model->select('uuid,username')->where(['id' => $note['staff']])->first();
+    }
+    return $notes;
+}, 1000);

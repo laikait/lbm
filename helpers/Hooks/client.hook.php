@@ -60,14 +60,12 @@ add_hook('client.limit', function(string $asc = 'ASC'): array {
     // Set Total Client
     $result['total'] = $total->count();
 
-    // Get Related Values
-    if (!empty($result['clients'])) {
-        $statusModel = new ClientStatus();
-        foreach ($result['clients'] as $k => $client) {
-            // Set Status Details
-            $result['clients'][$k]['status'] = \do_hook('client.status', $client['status'], $statusModel);
-        }
-    }
+    // Set Status Details
+    $statusModel = new ClientStatus();
+    array_filter($result['clients'], function ($res, $k) use ($statusModel, $result) {
+        $result['clients'][$k]['status'] = \do_hook('client.status', $res['status'], $statusModel);
+    }, ARRAY_FILTER_USE_BOTH);
+
     return $result;
 }, 1000);
 
@@ -96,7 +94,7 @@ add_hook('client.single', function(int|string $entity): array {
  * @return array
  */
 add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
-    $notes = (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+    $notes = (new ClientNote())->select('staff,title,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
     $staff_model = new Staff();
     foreach ($notes as $k => $note) {
         $notes[$k]['staff'] = $staff_model->select('uuid,username')->where(['id' => $note['staff']])->first();
@@ -132,10 +130,6 @@ add_hook('client.status.list', function (): array {
  * @return array
  */
 add_hook('client.activities.limit', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
-    // Throw InvalidArgumentException if Order By Value is Invalid
-    if (!in_array(strtolower($order), ['asc', 'desc'])) {
-        throw new InvalidArgumentException("Invalid Order By Value. Allowed Values are ASC or DESC");
-    }
     // Get Activities
     $activities = (new ClientActivity())->where(['relid' => (int) $relid])->order($column, $order)->get();
     foreach ($activities as $k => $activity) {
