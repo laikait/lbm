@@ -9,6 +9,7 @@
 declare(strict_types=1);
 
 use Laika\App\Model\Staff;
+use Laika\App\Model\LoginLog;
 use Laika\App\Model\StaffNote;
 use Laika\App\Model\StaffRole;
 use Laika\App\Model\StaffStatus;
@@ -18,19 +19,20 @@ use Laika\App\Model\StaffActivity;
 /**
  * Get Single Staff
  * @param int|string $entity Entity to Get Value.
+ * @param ?Staff $model Optional Staff Model to Avoid Multiple Instantiation. Default is null.
  * @return array
  */
-add_hook('staff.single', function (int|string $entity) {
+add_hook('staff.single', function (int|string $entity, ?Staff $model = null, string $select = '*') {
     $entity = \htmlspecialchars($entity);
     $where = [
         'id'        =>  $entity,
-        'uuid'      =>  $entity,
+        'uid'      =>  $entity,
         'username'  =>  $entity,
         'email'     =>  $entity
     ];
 
     // Get Staff
-    return (new Staff())->where($where, '=', 'OR')->first();
+    return ($model ?? (new Staff()))->select($select)->where($where, '=', 'OR')->first();
 });
 
 /**
@@ -75,7 +77,7 @@ add_hook('staff.limit', function(string $asc = 'ASC'): array {
 
     // Set Status Details
     $statusModel = new StaffStatus();
-    array_filter($staffs, function ($staff, $k) use ($statusModel, $staffs) {
+    array_filter($staffs, function ($staff, $k) use ($statusModel, &$staffs) {
         $staffs[$k]['status'] = \do_hook('staff.status', $staff['status'], $statusModel);
     }, ARRAY_FILTER_USE_BOTH);
 
@@ -100,7 +102,7 @@ add_hook('staff.role', function (string $role) {
  * @return array
  */
 add_hook('staff.status', function (string $status, ?StaffStatus $model = null) {
-    return ($model ??(new StaffStatus()))->select('entity,color')->where(['entity' => $status])->first();
+    return ($model ?? (new StaffStatus()))->select('entity,color')->where(['entity' => $status])->first();
 });
 
 /**
@@ -140,7 +142,16 @@ add_hook('staff.notes', function (int|string $relid, string $column = 'id', stri
     $notes = (new StaffNote())->select('staff,title,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
     $staff_model = new Staff();
     foreach ($notes as $k => $note) {
-        $notes[$k]['staff'] = $staff_model->select('uuid,username')->where(['id' => $note['staff']])->first();
+        $notes[$k]['staff'] = $staff_model->select('uid,username')->where(['id' => $note['staff']])->first();
     }
     return $notes;
+}, 1000);
+
+/**
+ * Get Staff Login Logs
+ * @param int|string $relid Staff RelID
+ * @return array
+ */
+add_hook('staff.login.logs', function (int|string $relid): array {
+    return (new LoginLog())->where(['type' => 'staff', 'relid' => $relid])->order('id', 'DESC')->get();
 }, 1000);

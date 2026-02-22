@@ -29,7 +29,7 @@ class StaffFactory extends Factory
      */
     public function __construct()
     {
-        parent::__construct('Staff', ['id', 'uuid', 'username', 'email', 'fname', 'lname', 'status']);
+        parent::__construct('Staff', ['id', 'uid', 'username', 'email', 'fname', 'lname', 'status']);
     }
 
     /**

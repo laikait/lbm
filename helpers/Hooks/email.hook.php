@@ -15,8 +15,8 @@ use Laika\App\Model\Email;
  * Get Emails
  * @return array
  */
-add_hook('email.get', function (): array {
-    return (new Email())->get();
+add_hook('email.get', function (string $column = '*'): array {
+    return (new Email())->select($column)->get();
 });
 
 /**
@@ -26,21 +26,17 @@ add_hook('email.get', function (): array {
 add_hook('email.group.list', function (): array {
     $rows  = (new Email())->order('group')->get();
     $groups = [];
-    foreach ($rows  as $row) {
-        $group = $row['group'];
-        unset($row['group']);
-
-        $groups[$group][] = $row;
-    }
+    array_filter($rows, function ($row) use (&$groups) {
+        $groups[strtolower($row['group'])][] = ['title' => $row['title'], 'group' => $row['group']];
+    });
     return $groups;
 });
 
 /**
  * Get Single Email
- * @param string $group Group Name.
- * @param string $action Action Name.
+ * @param string $entity Group Name.
  * @return array
  */
-add_hook('email.single', function (string $group, string $action): array {
-    return (new Email())->where(['group' => $group, 'action' => $action])->first();
+add_hook('email.single', function (int|string $entity): array {
+    return (new Email())->where(['id' => $entity, 'group' => $entity], '=', 'OR')->first();
 });

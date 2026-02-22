@@ -22,11 +22,11 @@ add_hook('group.get', function (): array {
 
 /**
  * Get Single Group
- * @param int|string $id Group id or uuid.
+ * @param int|string $id Group id or uid.
  * @return array
  */
 add_hook('group.single', function (int|string $id): array {
-    return (new Group())->where(['id' => $id, 'uuid' => $id], '=', 'OR')->first();
+    return (new Group())->where(['id' => $id, 'uid' => $id], '=', 'OR')->first();
 });
 
 /**

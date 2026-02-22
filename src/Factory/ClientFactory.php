@@ -34,7 +34,7 @@ class ClientFactory extends Factory
      */
     public function __construct()
     {
-        parent::__construct('Client', ['id', 'uuid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname']);
+        parent::__construct('Client', ['id', 'uid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname']);
     }
 
     /**
@@ -144,7 +144,7 @@ class ClientFactory extends Factory
 
                 // Get Insert User Data
                 $user_data = [
-                    'uuid' => $this->model->uuid(),
+                    'uid' => $this->model->uid(),
                     'fname' => $inputs['fname'],
                     'lname' => $inputs['lname'],
                     'username' => $inputs['username'],
@@ -218,9 +218,9 @@ class ClientFactory extends Factory
         // Get Inputs
         $inputs = \do_hook('request.inputs');
 
-        // Validate UUID
-        if (empty($client['uuid']) || empty($inputs['uuid']) || ($client['uuid'] !== $inputs['uuid'])) {
-            return ['status' => false, 'message' => LANG::$invalidUuid];
+        // Validate UID
+        if (empty($client['uid']) || empty($inputs['uid']) || ($client['uid'] !== $inputs['uid'])) {
+            return ['status' => false, 'message' => LANG::$invalidUid];
         }
 
         // Get Statuses & Countries List
@@ -309,8 +309,8 @@ class ClientFactory extends Factory
                 'task'  => LANG::$updatedClient,
                 'activity' => \sprintf(
                         LANG::$clientUpdatedByStaff,
-                        \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uuid']]),
-                        \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uuid']]),
+                        \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uid']]),
+                        \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uid']]),
                     ),
                 'changes' => \serialize($logs),
                 'created' => \do_hook('date.format')
@@ -323,7 +323,7 @@ class ClientFactory extends Factory
                 // Update Client
                 $this->model->transaction(function ($m) use($client, $clientInput) {
                     // Update Client
-                    $m->where(['uuid' => $client['uuid']])->update($clientInput);
+                    $m->where(['uid' => $client['uid']])->update($clientInput);
                 });
                 
                 // Set Address Where
@@ -346,7 +346,7 @@ class ClientFactory extends Factory
                 return ['status' => true, 'message' => $message];
             }
         }
-        return ['status' => true, 'message' => LANG::$noChanges];
+        return ['status' => false, 'message' => LANG::$noChanges];
     }
 
     /**
@@ -364,14 +364,14 @@ class ClientFactory extends Factory
         // Get Inputs
         $inputs = $this->request->inputs();
 
-        // Validate UUID
-        if ($client['uuid'] !== $inputs['uuid']) {
-            return ['status' => false, 'message' => LANG::$generalError];
+        // Validate UID
+        if (empty($client['uid']) || empty($inputs['uid']) ||  ($client['uid'] !== $inputs['uid'])) {
+            return ['status' => false, 'message' => LANG::$invalidUid];
         }
 
         $data = ['reset_token' => bin2hex(random_bytes(32)), 'token_expire' => time()];
         try {
-            $this->update(['uuid' => $client['uuid']], $data);
+            $this->update(['uid' => $client['uid']], $data);
         } catch (\Throwable $th) {
             $message = \do_hook('redirect.message', LANG::$resetPasswordFailed, $th->getMessage());
             return ['status' => true, 'message' => $message];
@@ -394,9 +394,9 @@ class ClientFactory extends Factory
         // Get Inputs
         $inputs = $this->request->inputs();
 
-        // Validate UUID
-        if ($client['uuid'] !== $inputs['uuid']) {
-            return ['status' => false, 'message' => LANG::$generalError];
+        // Validate UID
+        if (empty($client['uid']) || empty($inputs['uid']) ||  ($client['uid'] !== $inputs['uid'])) {
+            return ['status' => false, 'message' => LANG::$invalidUid];
         }
 
         try {
@@ -428,12 +428,9 @@ class ClientFactory extends Factory
         // Get Inputs
         $inputs = $this->request->inputs();
 
-        // Validate UUID
-        if ($client['uuid'] !== $inputs['uuid']) {
-            return [
-                'status' => false,
-                'message' => LANG::$generalError
-            ];
+        // Validate UID
+        if (empty($client['uid']) || empty($inputs['uid']) ||  ($client['uid'] !== $inputs['uid'])) {
+            return ['status' => false, 'message' => LANG::$invalidUid];
         }
 
         // Validate & Update Data
@@ -444,13 +441,33 @@ class ClientFactory extends Factory
             return ['status' => false, 'message' => \do_hook('form.error', 'note')];
         }
 
+        // Validate New Note Data
+        $rules = [
+            'title' => 'required|min:1|max:255',
+            'note' => 'required'
+        ];
+        $rules_messages = [
+            'title.required' => LANG::$requiredField,
+            'title.min' => sprintf(LANG::$minLength, 1),
+            'title.max' => sprintf(LANG::$maxLength, 255),
+            'note.required' => LANG::$requiredField
+        ];
+        $this->request->validate($rules, $rules_messages);
+        FormError::addBulk($this->request->errors());
+
+        // Return if Form Has Error
+        if (FormError::exists()) {
+            return ['status' => false, 'message' => LANG::$generalError];
+        }
+
         // Insert Note
         try {
             $obj = new ClientNote();
             $data = [
-                'uuid' => $obj->uuid(),
+                'uid' => $obj->uid(),
                 'relid' => $client['id'],
                 'staff' => \staff()['id'],
+                'title' => $inputs['title'],
                 'note' => $inputs['note'],
                 'created' => \do_hook('date.format')
             ];

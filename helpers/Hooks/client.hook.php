@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 use Laika\App\Model\Staff;
 use Laika\App\Model\Client;
+use Laika\App\Model\LoginLog;
 use LBM\Factory\ClientFactory;
 use Laika\App\Model\ClientNote;
 use Laika\App\Model\ClientStatus;
@@ -62,7 +63,7 @@ add_hook('client.limit', function(string $asc = 'ASC'): array {
 
     // Set Status Details
     $statusModel = new ClientStatus();
-    array_filter($result['clients'], function ($res, $k) use ($statusModel, $result) {
+    array_filter($result['clients'], function ($res, $k) use ($statusModel, &$result) {
         $result['clients'][$k]['status'] = \do_hook('client.status', $res['status'], $statusModel);
     }, ARRAY_FILTER_USE_BOTH);
 
@@ -72,18 +73,19 @@ add_hook('client.limit', function(string $asc = 'ASC'): array {
 /**
  * Get Single Client
  * @param int|string $entity Entity to Get Value.
+ * @param ?Client $model Optional Client Model to Avoid Multiple Instantiation. Default is null.
  * @return array
  */
-add_hook('client.single', function(int|string $entity): array {
+add_hook('client.single', function(int|string $entity, ?Client $model = null, string $select = '*'): array {
     $entity = \htmlspecialchars($entity);
     $where = [
-        'id'        =>  $entity,
-        'uuid'      =>  $entity,
-        'username'  =>  $entity,
-        'email'     =>  $entity
+        'id' => $entity,
+        'uid' => $entity,
+        'username' => $entity,
+        'email' => $entity
     ];
     // Return Client
-    return (new Client())->where($where, '=', 'OR')->first();
+    return ($model ?? (new Client()))->select($select)->where($where, '=', 'OR')->first();
 }, 1000);
 
 /**
@@ -95,9 +97,11 @@ add_hook('client.single', function(int|string $entity): array {
  */
 add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
     $notes = (new ClientNote())->select('staff,title,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+
+    // Staff Model
     $staff_model = new Staff();
     foreach ($notes as $k => $note) {
-        $notes[$k]['staff'] = $staff_model->select('uuid,username')->where(['id' => $note['staff']])->first();
+        $notes[$k]['staff'] = $staff_model->select('uid,username')->where(['id' => $note['staff']])->first();
     }
     return $notes;
 }, 1000);
@@ -136,4 +140,13 @@ add_hook('client.activities.limit', function (int|string $relid, string $column 
         $activities[$k]['changes'] = unserialize($activity['changes']);
     }
     return $activities;
+}, 1000);
+
+/**
+ * Get Client Login Logs
+ * @param int|string $relid Client RelID
+ * @return array
+ */
+add_hook('client.login.logs', function (int|string $relid): array {
+    return (new LoginLog())->where(['type' => 'client', 'relid' => $relid])->order('id', 'DESC')->get();
 }, 1000);
