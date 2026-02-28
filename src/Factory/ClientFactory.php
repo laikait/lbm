@@ -191,7 +191,7 @@ class ClientFactory extends Factory
                 $security_data = [
                     'client'    =>  $id,
                     'entity'    =>  'code',
-                    'meta'      =>  mt_rand(100000, 999999)
+                    'data'      =>  mt_rand(10000000, 99999999)
                 ];
 
                 // Insert Address & Security
@@ -280,8 +280,8 @@ class ClientFactory extends Factory
             'fname' => $client['fname'],
             'lname' => $client['lname'],
             'email' => $client['email'],
-            'status' => $client['status']['entity'],
-            'country' => $client['address']['country']
+            'status' => $client['status']['entity'] ?? 'inactive',
+            'country' => $client['address']['country'] ?? ''
         ];
 
         // Get Address Input
@@ -306,22 +306,22 @@ class ClientFactory extends Factory
         $logs = array_merge($client_change_log, $address_change_log);
 
         // Take Action if Has Change Logs
-        if (!empty($logs)) {
-            $staff = \staff();
-            // Make New Log Data
-            $activity = [
-                'relid' => $staff['id'],
-                'task'  => LANG::$updatedClient,
-                'activity' => \sprintf(
-                        LANG::$clientUpdatedByStaff,
-                        \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uid']]),
-                        \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uid']]),
-                    ),
-                'changes' => \serialize($logs),
-                'created' => \do_hook('date.format')
-            ];
-
+        if (!empty($logs)) {            
             try {
+                $staff = \staff();
+                // Make New Log Data
+                $activity = [
+                    'relid' => $staff['id'],
+                    'task'  => LANG::$updatedClient,
+                    'activity' => \sprintf(
+                            LANG::$clientUpdatedByStaff,
+                            \do_hook('log.url', $client['username'], 'staff.client', ['client' => $client['uid']]),
+                            \do_hook('log.url', $staff['username'], 'staff.staff', ['staff' => $staff['uid']]),
+                        ),
+                    'changes' => \serialize($logs),
+                    'created' => \do_hook('date.format')
+                ];
+
                 // Add Updated Column
                 $clientInput['updated'] = $addressInput['updated'] = \do_hook('date.format');
 
@@ -334,9 +334,15 @@ class ClientFactory extends Factory
                 // Set Address Where
                 $addressWhere = ['type' => 'client', 'relid' => $client['id'], 'profile_default' => 'yes'];
 
-                // Update Address
-                (new Address())->transaction(function ($m) use($addressWhere, $addressInput) {
-                    $m->where($addressWhere)->update($addressInput);
+                // Update/Insert Address
+                (new Address())->transaction(function ($m) use($addressWhere, $addressInput, $existingAddress, $client) {
+                    // Insert Address If Existing is Empty
+                    if (empty($existingAddress)) {
+                        $addressInput = array_merge($addressInput, ['relid' => $client['id'], 'type' => 'client', 'profile_default' => 'yes']);
+                        $m->insert($addressInput);
+                    } else {
+                        $m->where($addressWhere)->update($addressInput);
+                    }
                 });
 
                 // Update Log
@@ -451,16 +457,8 @@ class ClientFactory extends Factory
         }
 
         // Validate New Note Data
-        $rules = [
-            'title' => 'required|min:1|max:255',
-            'note' => 'required'
-        ];
-        $rules_messages = [
-            'title.required' => LANG::$requiredField,
-            'title.min' => sprintf(LANG::$minLength, 1),
-            'title.max' => sprintf(LANG::$maxLength, 255),
-            'note.required' => LANG::$requiredField
-        ];
+        $rules = ['note' => 'required'];
+        $rules_messages = ['note.required' => LANG::$requiredField];
         $this->request->validate($rules, $rules_messages);
         FormError::addBulk($this->request->errors());
 
@@ -476,7 +474,6 @@ class ClientFactory extends Factory
                 'uid' => $obj->uid(),
                 'relid' => $client['id'],
                 'staff' => \staff()['id'],
-                'title' => $inputs['title'],
                 'note' => $inputs['note'],
                 'created' => \do_hook('date.format')
             ];
