@@ -16,9 +16,10 @@ namespace LBM\Abstract;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
-use Laika\Core\Http\Redirect;
-use Laika\Core\Http\Request;
 use Laika\Model\Model;
+use Laika\Core\Http\Request;
+use Laika\Core\Http\Redirect;
+use LBM\Exception\FactoryException;
 
 abstract class Factory
 {
@@ -74,6 +75,10 @@ abstract class Factory
         $this->limit = \do_hook('option.int', 'data.limit', 20);
         $this->acceptedQueries = $acceptedQueries;
         $model = "\\Laika\\App\\Model\\{$model}";
+        // Check Model Exists
+        if (!class_exists($model)) {
+            throw new FactoryException("Invalid Model [{$model}] Provided In Factory");
+        }
         $this->model = new $model();
     }
 

@@ -24,7 +24,7 @@ use Laika\App\Model\ClientActivity;
 add_hook('client.limit', function(string $asc = 'ASC'): array {
     // Get Input
     $input = do_hook('request.input', 'client');
-    $model = new Client();
+    $model = (new Client());
     $factory = new ClientFactory();
 
     // Get Model Object for Total Clients
@@ -96,7 +96,7 @@ add_hook('client.single', function(int|string $entity, ?Client $model = null, st
  * @return array
  */
 add_hook('client.notes', function (int|string $relid, string $column = 'id', string $order = 'DESC'): array {
-    $notes = (new ClientNote())->select('staff,title,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
+    $notes = (new ClientNote())->select('staff,note,created')->where(['relid' => (int) $relid])->order($column, $order)->get();
 
     // Staff Model
     $staff_model = new Staff();

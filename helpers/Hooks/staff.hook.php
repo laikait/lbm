@@ -9,6 +9,7 @@
 declare(strict_types=1);
 
 use Laika\App\Model\Staff;
+use LBM\Factory\StaffFactory;
 use Laika\App\Model\LoginLog;
 use Laika\App\Model\StaffNote;
 use Laika\App\Model\StaffRole;
@@ -39,14 +40,16 @@ add_hook('staff.single', function (int|string $entity, ?Staff $model = null, str
  * Get Limit Clients
  * @return array
  */
-add_hook('staff.limit', function(string $asc = 'ASC'): array {
+add_hook('staff.limit', function(string $asc = 'ASC', string $select = '*'): array {
     // Get Input
     $input = \do_hook('request.input', 'staff');
     // Staff Model
-    $model = new Staff();
+    $model = (new Staff())->select($select);
+    // Staff Factory
+    $factory = new StaffFactory();
 
     // Get Model Object for Total Staffs
-    $count = (new Staff())->select($this->model->id);
+    $count = (new Staff())->select($model->id);
     if (!empty($input)) {
         $input = "^{$input}";
         $where = [
@@ -62,37 +65,39 @@ add_hook('staff.limit', function(string $asc = 'ASC'): array {
         $model = $model->where($where, 'REGEXP', 'OR');
     } else {
         // Extend Total Staff Model
-        $count = $count->where($this->queries());
+        $count = $count->where($factory->queries());
         // Extend Staff Model
-        $model = $model->where($this->queries());
+        $model = $model->where($factory->queries());
     }
 
-    // Return Result
     // Get Page Number & Limit
     $page = (int) do_hook('request.input', 'page', 1);
     $limit = (int) do_hook('option.int', 'data.limit', 20);
+
+    // Get Staffs
     $staffs = $model->limit($limit)->offset($page)->order($model->id, $asc)->get();
+    
     // Set Total Staff
     $total = $count->count();
-
+    
     // Set Status Details
     $statusModel = new StaffStatus();
     array_filter($staffs, function ($staff, $k) use ($statusModel, &$staffs) {
         $staffs[$k]['status'] = \do_hook('staff.status', $staff['status'], $statusModel);
     }, ARRAY_FILTER_USE_BOTH);
-
+        
+    // Return Result
     return ['staffs' => $staffs, 'total' => $total];
 }, 1000);
 
 /**
  * Staff Role
  * @param string $role Role to Get Value. Example: admin, staff, etc.
+ * @param string $select Select Columns. Default is '*'.
  * @return array
  */
-add_hook('staff.role', function (string $role) {
-    $result = (new StaffRole())->where(['role' => $role])->first();
-    $returl['entities'] = unserialize($result['entities']);
-    return $returl;
+add_hook('staff.role', function (string $role, string $select = '*') {
+    return (new StaffRole())->select($select)->where(['entity' => $role])->first();
 });
 
 /**

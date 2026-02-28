@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-use Laika\Core\Helper\Auth;
+use Laika\Core\Auth\Auth;
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -32,5 +32,5 @@ function admin_access(string $access): bool
     $parts = explode('.', $access);
     $name = $parts[0];
     $action = strtolower($parts[1] ?? 'unknown');
-    return $user['role']['entities'][$name][$action] ?? false;
+    return $user['role']['accesses'][$name][$action] ?? false;
 }

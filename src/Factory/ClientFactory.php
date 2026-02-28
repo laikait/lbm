@@ -16,6 +16,7 @@ namespace LBM\Factory;
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
+use LBM\Exception\FactoryException;
 use Laika\App\Model\StaffActivity;
 use Laika\App\Model\ClientNote;
 use Laika\Core\Http\FormError;
@@ -34,7 +35,11 @@ class ClientFactory extends Factory
      */
     public function __construct()
     {
-        parent::__construct('Client', ['id', 'uid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname']);
+        try {
+            parent::__construct('Client', ['id', 'uid', 'fname', 'lname', 'username', 'email', 'status', 'country', 'companyname']);
+        } catch (\Throwable $e) {
+            throw new FactoryException($e->getMessage(), (int) $e->getCode(), $e);
+        }
     }
 
     /**
@@ -184,9 +189,9 @@ class ClientFactory extends Factory
 
                 // Get Security Data
                 $security_data = [
-                    'client' => $id,
-                    'entity' => 'code',
-                    'data' => mt_rand(100000, 999999)
+                    'client'    =>  $id,
+                    'entity'    =>  'code',
+                    'meta'      =>  mt_rand(100000, 999999)
                 ];
 
                 // Insert Address & Security
@@ -369,14 +374,16 @@ class ClientFactory extends Factory
             return ['status' => false, 'message' => LANG::$invalidUid];
         }
 
-        $data = ['reset_token' => bin2hex(random_bytes(32)), 'token_expire' => time()];
+        $data = ['password_reset_token' => bin2hex(random_bytes(32)), 'token_expire' => do_hook('date.format')];
         try {
-            $this->update(['uid' => $client['uid']], $data);
+            if (!$this->model->where(['uid' => $client['uid']])->update($data)) {
+                throw new FactoryException(LANG::$noActionTaken);
+            }
         } catch (\Throwable $th) {
             $message = \do_hook('redirect.message', LANG::$resetPasswordFailed, $th->getMessage());
-            return ['status' => true, 'message' => $message];
+            return ['status' => false, 'message' => $message];
         }
-        return ['status' => true, 'message' => LANG::$resetPasswordSuccessful];
+        return ['status' => true, 'message' => LANG::$resetrequested];
     }
 
     /**
@@ -402,7 +409,9 @@ class ClientFactory extends Factory
         try {
             $obj = new Security();
             $where = ['client' => $client['id'], 'entity' => 'code'];
-            $obj->where($where)->update(['data' => mt_rand(100000, 999999)]);
+            if (!$obj->where($where)->update(['data' => mt_rand(10000000, 99999900)])) {
+                throw new FactoryException(LANG::$noChanges);
+            }
         } catch (\Throwable $th) {
             $message = \do_hook('redirect.message', LANG::$resetSecurityCodeFailed, $th->getMessage());
             return ['status' => false, 'message' => $message];

@@ -18,8 +18,6 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 
 use LBM\Exception\FactoryException;
 use Laika\App\Model\StaffActivity;
-use Laika\App\Model\StaffStatus;
-use Laika\App\Model\Staff;
 use LBM\Abstract\Factory;
 
 class StaffFactory extends Factory
@@ -29,7 +27,11 @@ class StaffFactory extends Factory
      */
     public function __construct()
     {
-        parent::__construct('Staff', ['id', 'uid', 'username', 'email', 'fname', 'lname', 'status']);
+        try {
+            parent::__construct('Staff', ['id', 'uid', 'username', 'email', 'fname', 'lname', 'status']);
+        } catch (\Throwable $e) {
+            throw new FactoryException($e->getMessage(), (int) $e->getCode(), $e);
+        }
     }
 
     /**
