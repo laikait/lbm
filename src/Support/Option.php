@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Laika PHP MVC Framework
  * Author: Showket Ahmed
@@ -13,47 +12,47 @@ declare(strict_types=1);
 
 namespace LBM\Support;
 
-use Laika\App\Model\Options;
+use Laika\App\Model\OptionsModel;
 
 class Option
 {
     /**
      * Get Option Value
-     * @param string $name - Required Argument as Option Key.
-     * @param mixed $default - If No Valu Exists/Found, Default will Return.
+     * @param string $key - Required Argument as Option Key.
+     * @param mixed $value - If No Valu Exists/Found, Default will Return.
      * @return mixed
      */
-    public static function get(string $name, mixed $default = null): mixed
+    public static function get(string $key, mixed $value = null): mixed
     {
         try {
-            $model = new Options();
-            $option = $model->where(['entity' => $name])->first();
-            $default = $option['data'] ?? $default;
+            $model = new OptionsModel();
+            $option = $model->where(['key' => $key])->first();
+            $value = $option['value'] ?? $value;
         } catch (\Throwable $th) {}
-        return $default;
+        return $value;
     }
 
     /**
      * Set Option
-     * @param string $name Required Argument. Option Name
+     * @param string $key Required Argument. Option Name
      * @param string $value Required Argument. Option Value
      * @param bool $default Optional Argument. Default is false
      */
-    public static function set(string $name, string $value, bool $default = false): bool
+    public static function set(string $key, string $value, bool $default = false): bool
     {
-        $model = new Options();
+        $model = new OptionsModel();
         $default = $default ? 'yes' : 'no';
 
         // Check Option Name Doesn't Exists
-        if (empty($model->first(['entity' => $name]))) {
+        if (empty($model->first(['key' => $key]))) {
             return (bool) $model->insert([
-                'entity' => $name,
-                'data' => $value,
+                'key' => $key,
+                'value' => $value,
                 'is_default' => $default
             ]);
         }
 
         // Update Value
-        return (bool) $model->update(['entity' => $name], ['data' => $value]);
+        return (bool) $model->update(['key' => $key], ['value' => $value]);
     }
 }

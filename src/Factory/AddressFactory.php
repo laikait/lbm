@@ -1,7 +1,6 @@
 <?php
-
 /**
- * Cloud Bill Master
+ * Laika Bill Master
  * Author: Showket Ahmed
  * Email: riyadhtayf@gmail.com
  * License: MIT

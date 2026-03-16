@@ -13,31 +13,32 @@ declare(strict_types=1);
 /*============================= OPTION HOOKS =============================*/
 /**
  * Get App DB Option
- * @param string $entity DB Option entity
+ * @param string $key DB Option entity
  * @param mixed $default Option Default Value
  * @return string
  */
-add_hook('option', function(string $entity, mixed $default = ''){
-    return LBM\Support\Option::get($entity, Laika\Core\Helper\Config::get('env', $entity, $default));
+add_hook('option', function(string $key, mixed $default = ''){
+    return LBM\Support\Option::get($key, $default);
 }, 1000);
 
 /**
  * Get App DB Option as Int
- * @param string $entity DB Option entity
+ * @param string $key DB Option entity
  * @return int
  */
-add_hook('option.int', function(string $entity, int $default = 0): int{
-    return (int) \do_hook('option', $entity, $default);
+add_hook('option.int', function(string $key, int $default = 0): int{
+    $value = \do_hook('option', $key, $default);
+    return preg_match('/^[0-9]+$/i', $value) ? (int) $value : $default;
 }, 1000);
 
 /**
  * Get App DB Option as Bool
- * @param string $entity DB Option entity
+ * @param string $key DB Option entity
  * @return bool
  */
-add_hook('option.bool', function(string $entity){
-    $value = \do_hook('option', $entity, false);
-    return \is_bool($value) ? $value : (bool) \preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value);
+add_hook('option.bool', function(string $key): bool {
+    $value = \do_hook('option', $key, false);
+    return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : false;
 }, 1000);
 
 /*============================= APP HOOKS =============================*/
@@ -46,7 +47,7 @@ add_hook('option.bool', function(string $entity){
  * @return string
  */
 add_hook('app.name', function(){
-    return \do_hook('option', 'app.name', \do_hook('config.app', 'name', 'Laika Billing Application'));
+    return \do_hook('option', 'app.name', 'Laika Bill Manager');
 }, 1000);
 
 /**
@@ -71,6 +72,7 @@ add_hook('app.icon', function(?string $key = null): string {
 
 /**
  * Panel Info
+ * Remove Later
  */
 add_hook('panel', function(){
     $arr = [
@@ -89,6 +91,7 @@ add_hook('panel', function(){
 
 /**
  * Make Log URL
+ * Remove Later
  */
 add_hook('log.url', function (string $label, string $named, array $param = []) {
     return '<a href="' . named($named, $param, true) . '">' . $label . '</a>';
@@ -99,7 +102,7 @@ add_hook('log.url', function (string $label, string $named, array $param = []) {
  * Create Redirect Message
  */
 add_hook('redirect.message', function (string $userMesssage, string $exceptionMessage) {
-    return \do_hook('config.env', 'debug', false) ? $exceptionMessage : $userMesssage;
+    return DEBUG ? $exceptionMessage : $userMesssage;
 });
 
 /*============================= FORM HOOKS =============================*/

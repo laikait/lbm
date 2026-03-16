@@ -15,7 +15,7 @@ use Laika\Core\App\Router;
 Router::group(ADMIN, function(){
     Router::get('/login', 'Admin\Login@index')->name('staff.login'); // Done
     Router::post('/login', 'Admin\Login@index');
-}, ['Admin\Common','Admin\Login']);
+}, ['Auth\Maker|type='.ADMIN]);
 
 
 // Admin Route Group
@@ -47,7 +47,7 @@ Router::group(ADMIN, function(){
     Router::get('/my-account', function(){})->name('staff.account');
     Router::get('/settings', function(){})->name('settings');
 
-},['Admin\\Common','Admin\\StaffValidator']);
+},['Auth\Checker|type='.ADMIN]);
 
 // Admin Add Route Group
 Router::group(ADMIN . '/add', function(){
@@ -55,12 +55,4 @@ Router::group(ADMIN . '/add', function(){
     Router::get('client', 'Admin\Client@create')->middleware('Admin\AddClient')->name('staff.add-client');
     Router::post('client', 'Admin\Client@create')->middleware('Admin\AddClient');
 
-},['Admin\\Common','Admin\\StaffValidator']);
-
-Router::get('test', function(){
-    $model = new Laika\Model\Model();
-    echo $model->table('sample')->where(['id' => 7], '<', 'AND')->where(['created' => 3456], '>', 'OR')->debug();
-
-    // $reg = new \Laika\Core\Regex\Regex();
-    // dd($reg->validate('password', $password, 18, true, true, true, true));
-});
+},['Auth\Checker|type='.ADMIN]);
