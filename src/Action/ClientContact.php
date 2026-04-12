@@ -71,8 +71,8 @@ class ClientContact
                 ->select(implode(', ', $select))
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset($this->request->input('page'))
-                ->limit(do_hook('option.int', 'data.limit'))
+                ->offset($this->request->input('page', 1))
+                ->limit(do_hook('option.int', 'data.limit', 20))
                 ->get();
 
         // Set DateTime Format

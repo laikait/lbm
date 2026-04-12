@@ -22,5 +22,12 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {},
+    "extra": {
+        "laika": {
+            "providers": [
+                "LBM\\Service\\Provider"
+            ]
+        }
+    }
 }

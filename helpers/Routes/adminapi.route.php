@@ -23,12 +23,12 @@ Router::group(ADMIN.'/api', function(){
     // Get Clients
     Router::get('/{version}/clients', 'Api\Staff\ClientController@clients')->name('staff.api.clients');
 
+}, ['CommonAdminApi']);
 
-    // Set Fallback
-    Router::fallback(function(){
-        $api = new Api();
-        $api->message("Invali Url Detected!");
-        $api->send([], 404);
-        return;
-    }, ADMIN.'/api');
+// Set Fallback
+Router::fallback(ADMIN.'/api', function(){
+    $api = new Api();
+    $api->message("Invali Url Detected!");
+    $api->send([], 404);
+    return;
 }, ['CommonAdminApi']);

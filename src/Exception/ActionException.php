@@ -14,10 +14,4 @@ namespace LBM\Exception;
 
 use Exception;
 
-class ActionException extends Exception
-{
-    public function __construct(string $message, int $code = 0, \Throwable|null $e = null)
-    {
-        parent::__construct($message, $code, $e);
-    }
-}
+class ActionException extends Exception {}

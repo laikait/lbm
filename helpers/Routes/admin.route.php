@@ -11,6 +11,9 @@
 ##########################################################################
 use Laika\Core\App\Router;
 
+// Admin Panel Fallback
+Router::fallback(ADMIN, null, 'Auth\Checker|type='.ADMIN);
+
 // Admin Login Routes
 Router::group(ADMIN, function(){
     Router::get('/login', 'Admin\Login@index')->name('staff.login'); // Done
@@ -43,6 +46,10 @@ Router::group(ADMIN, function(){
     Router::get('/staff/{staff:[a-zA-Z0-9\-]+}', function(){})->name('staff.staff');
     Router::get('/staff-activities', function(){})->name('staff.activities');
 
+    // Invoices
+    Router::get('/invoices', function(){})->name('staff.invoices');
+    Router::get('/invoice/{invoice:[a-zA-Z0-9\-]+}', function(){})->name('staff.invoice');
+
     // Others
     Router::get('/my-account', function(){})->name('staff.account');
     Router::get('/settings', function(){})->name('settings');
@@ -52,7 +59,11 @@ Router::group(ADMIN, function(){
 // Admin Add Route Group
 Router::group(ADMIN . '/add', function(){
     // Add Client
-    Router::get('client', 'Admin\Client@create')->middleware('Admin\AddClient')->name('staff.add-client');
-    Router::post('client', 'Admin\Client@create')->middleware('Admin\AddClient');
+    Router::get('client', 'Admin\Client@create')->middleware('Admin\Client')->name('staff.add.client');
+    Router::post('client', 'Admin\Client@create')->middleware('Admin\Client');
+
+    // Add Invoice
+    Router::get('invoice', 'Admin\Client@create')->middleware('Admin\Invoice')->name('staff.add.invoice');
+    Router::post('invoice', 'Admin\Client@create')->middleware('Admin\Invoice');
 
 },['Auth\Checker|type='.ADMIN]);

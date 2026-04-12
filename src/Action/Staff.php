@@ -58,12 +58,13 @@ class Staff
      */
     public function limit(): array
     {
+        $columns = ['sid', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'last_login_at', 'status_name', 'status_color', 'created_at'];
         $staffs = $this->model
-                ->select('id,first_name,middle_name,last_name,username,email,last_login_at,status_name,status_color,created_at')
+                ->select($columns)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset($this->request->input('page'))
-                ->limit(do_hook('option.int', 'data.limit'))
+                ->offset($this->request->input('page', 1))
+                ->limit(do_hook('option.int', 'data.limit', 20))
                 ->get();
 
         // Set DateTime Format
@@ -87,12 +88,12 @@ class Staff
         }
 
         $where = [
-            'id' => $entity,
+            'sid' => $entity,
             'username' => $entity,
             'email' => $entity,
         ];
 
-        $this->model = $this->model->select(implode(', ', $columns));
+        $this->model = $this->model->select($columns);
         // Join Roles if Exists
         if (in_array('role_relid', $columns) || in_array('role_id', $columns) || in_array('role_name', $columns)
         ) {

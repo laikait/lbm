@@ -11,22 +11,17 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Auth\Auth;
+use Laika\Core\Relay\Relays\Auth;
 use LBM\Support\Initiate;
-use Laika\Session\Session;
-use Laika\Core\Http\Request;
-use Laika\Core\Http\Response;
-use Laika\Core\Helper\Client;
-use Laika\App\Model\LoginLogModel;
+use Laika\Session\Relay\Session;
+use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Relay\Relays\Header;
+use Laika\Core\Relay\Relays\Visitor;
+use App\Model\LoginLogModel;
+use LANG;
 
 class AuthUser
 {
-    /** @var Request $request */
-    protected Request $request;
-
-    /** @var Response $response */
-    protected Response $response;
-
     /** @var LoginLogModel $model */
     protected LoginLogModel $model;
 
@@ -36,7 +31,7 @@ class AuthUser
     /** @var string $timeformat */
     protected string $timeformat;
 
-    public function __construct(?Request $request = null, ?Response $response = null)
+    public function __construct()
     {
         // Initiate Requirements
         $init = new Initiate();
@@ -44,8 +39,6 @@ class AuthUser
 
         // Assign Additionals
         $this->model = new LoginLogModel();
-        $this->request = is_object($request) ? $request : new Request();
-        $this->response = is_object($response) ? $response : new Response();
         $this->timezone = do_hook('option', 'time.zone', 'UTC');
         $this->timeformat = do_hook('option', 'datetime.format', 'Y-M-d H:i:s');
     }
@@ -55,16 +48,16 @@ class AuthUser
      * @param array $logs Logs to Insert
      * @return array
      */
-    public function create_log(array $logs): array
+    public function createLog(array $logs): array
     {
         return $this->model->transaction(function(LoginLogModel $m) use ($logs) {
             try {
                 $m->insert($logs);
             } catch (\Throwable $th) {
-                $message = \do_hook('redirect.message', \LANG::$logCreateFailed, $th->getMessage());
+                $message = do_hook('redirect.message', LANG::$logCreateFailed, $th->getMessage());
                 return ['status' => false, 'message' => $message];
             }
-            return ['status' => true, 'message' => \LANG::$logInSuccessful];
+            return ['status' => true, 'message' => LANG::$logInSuccessful];
         });
     }
 
@@ -72,28 +65,24 @@ class AuthUser
      * Staff Login
      * @return ?array
      */
-    public function staff_login(): ?array
+    public function staffLogin(): ?array
     {
         // Initiate User Auth
-        $auth = new Auth(ADMIN);
+        Auth::setType(ADMIN)->init();
 
         // Check Valid User Data Stored in Session & Database
-        $random_id = Session::get("id", ADMIN);
-
-        // Get Authenticated ID
-        $len = strlen((string) $random_id);
-        $id = $len === 0 ? 0 : (int) $random_id[$len -1];
+        $id = (int) substr(Session::get("id", ADMIN), 12);
 
         // Database Stored User
-        $auth_user = $auth->user(ADMIN);
+        $auth_user = Auth::user();
 
         // Return if Already Authenticated
-        if (isset($auth_user['id']) && ($id === (int) $auth_user['id'])) {
-            return ['status' => true, 'message' => \LANG::$authenticated];
+        if (isset($auth_user['sid']) && ($id > 0) && ($id === (int) $auth_user['sid'])) {
+            return ['status' => true, 'message' => LANG::$authenticated];
         }
 
         // Process Login
-        return $this->request->isPost() ? $this->processStaffLogin() : null;
+        return Request::isPost() ? $this->processStaffLogin() : null;
     }
 
     /**
@@ -103,25 +92,21 @@ class AuthUser
     public function panel_login(): ?array
     {
         // Initiate User Auth
-        $auth = new Auth(PANEL);
+        Auth::setType(PANEL)->init();
 
         // Check Valid User Data Stored in Session & Database
-        $random_id = Session::get("id", PANEL);
-
-        // Get Authenticated ID
-        $len = strlen((string) $random_id);
-        $id = $len === 0 ? 0 : (int) $random_id[$len -1];
+        $id = (int) substr(Session::get("id", PANEL, ''), 12);
 
         // Database Stored User
-        $auth_user = $auth->user(PANEL);
+        $auth_user = Auth::user();
 
         // Return if Already Authenticated
-        if (isset($auth_user['id']) && ($id === (int) $auth_user['id'])) {
-            return ['status' => true, 'message' => \LANG::$authenticated];
+        if (isset($auth_user['id']) && ($id > 0) && ($id === (int) $auth_user['id'])) {
+            return ['status' => true, 'message' => LANG::$authenticated];
         }
 
         // Process Login
-        return $this->request->isPost() ? $this->processPanelLogin() : null; // processPanelLogin Not Completed Yet
+        return Request::isPost() ? $this->processPanelLogin() : null; // processPanelLogin Not Completed Yet
     }
 
     /**
@@ -137,15 +122,15 @@ class AuthUser
         }
 
         // Get Staff
-        $input = $this->request->input('user');
+        $input = Request::input('user');
         // Staff Columns To Get
-        $columns = ['id', 'password', 'role_name', 'permissions', 'first_name', 'last_name', 'username', 'email', 'status_name'];
+        $columns = ['sid', 'password', 'role_name', 'permissions', 'first_name', 'last_name', 'username', 'email', 'status_name'];
 
         $staff = (new Staff())->single($input, $columns);
 
         // Check Staff Exists & Active
         if (empty($staff) || ($staff['status_name'] != 'active')) {
-            return ['status' => false, 'message' => \LANG::$invalidUser];
+            return ['status' => false, 'message' => LANG::$invalidUser];
         }
 
         // Check Password is Valid
@@ -153,31 +138,31 @@ class AuthUser
         // Unset Password
         unset($staff['password']);
         // Check Password is Valid
-        if (!password_verify($this->request->input('password'), $password)) {
-            return ['status' => false, 'message' => \LANG::$invalidUser];
+        if (!password_verify(Request::input('password'), $password)) {
+            return ['status' => false, 'message' => LANG::$invalidUser];
         }
 
         try {
             // Set Auth User Data
-            call_user_func([new Auth(ADMIN), 'create'], $staff);
+            Auth::create($staff);
             // Log Login
-            $client = new Client();
             $logs = [
                 'type' => 'staff',
-                'relid' => $staff['id'],
-                'ip_address' => $client->ip(),
-                'user_agent' => $client->userAgent(),
+                'relid' => $staff['sid'],
+                'ip_address' => Visitor::ip(),
+                'user_agent' => Visitor::userAgent(),
             ];
-            call_user_func([$this, 'create_log'], $logs);
+            $this->createLog($logs);
         } catch (\Throwable $th) {
-            $message = \do_hook('redirect.message', \LANG::$generalError, $th->getMessage());
+            $message = do_hook('redirect.message', LANG::$generalError, $th->getMessage());
             return ['status' => false, 'message' => $message];
         }
         // Set Auth Session
-        Session::set("id", bin2hex(random_bytes(6)) . $staff['id'], ADMIN);
+        Session::for(ADMIN);
+        Session::set("id", bin2hex(random_bytes(6)) . $staff['sid']);
 
         // Redirect to Dashboard
-        return ['status' => true, 'message' => sprintf(\LANG::$welcome, $staff['first_name'])];
+        return ['status' => true, 'message' => sprintf(LANG::$welcome, $staff['first_name'])];
     }
 
     /**
@@ -187,9 +172,9 @@ class AuthUser
     public function validateStaffLogin(): ?array
     {
         // Initiate User Auth
-        $auth = new Auth(ADMIN);
+        Auth::setType(ADMIN)->init();
         // Check Valid User Data Stored in Session & Database
-        $random_id = Session::get("id", ADMIN);
+        $random_id = Session::get("id");
 
         // Get Authenticated ID
         $len = strlen((string) $random_id);
@@ -199,7 +184,7 @@ class AuthUser
         $auth_user = $auth->user(ADMIN);
 
         // Redirect to Login Page if Not Authenticated
-        if (empty($random_id) || !isset($auth_user['id']) || ($id == 0) || ((int) $auth_user['id'] !== $id)) {
+        if (empty($random_id) || !isset($auth_user['sid']) || ($id == 0) || ((int) $auth_user['sid'] !== $id)) {
             // Destroy Previous Data if Exists
             $auth->destroy();
             // Remove Staff Data if Exists

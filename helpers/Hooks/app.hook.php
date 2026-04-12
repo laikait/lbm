@@ -37,7 +37,7 @@ add_hook('option.int', function(string $key, int $default = 0): int{
  * @return bool
  */
 add_hook('option.bool', function(string $key): bool {
-    $value = \do_hook('option', $key, false);
+    $value = \do_hook('option', $key, 'no');
     return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : false;
 }, 1000);
 
@@ -150,25 +150,6 @@ add_hook('form.error', function(string $key): string {
 add_hook('class.active', function(string $key, string $value = ''): string {
     return do_hook('request.input', $key) === $value ? 'active' : '';
 });
-/**
- * App Copyright Text
- * @param string $class CSS Class for Anchor Tag
- * @return string
- */
-add_hook('app.copyright', function(string $class = 'app-text-secondary'): string {
-    $year = date('Y');
-    $name = do_hook('app.name');
-    return "&copy; {$year}. <a class=\"{$class}\" href=\"" . named('/', [], true) . "\">{$name}</a> All Rights Reserved.";
-});
-
-/**
- * App Powered By Text
- * @param string $class CSS Class for Anchor Tag
- * @return string
- */
-add_hook('app.poweredby', function(string $class = 'app-text-secondary'): string {
-    return do_hook('option.bool', 'poweredby') ? "Powered By <a class=\"{$class}\" target=\"_blank\" href=\"https://laikait.com\">Laika IT</a>" : '';
-});
 
 /*================================ CSRF ================================*/
 /**
@@ -181,7 +162,13 @@ add_hook('csrf.field.admin', function (): string{
 /*========================== TEMPLATE FILTERS ==========================*/
 /**
  * Admin template Name
- */
+*/
 add_hook('admin.template', function(){
     return 'admin/' . do_hook('option', 'admin.template', 'default');
 }, 1000);
+
+/*========================== ADMIN FILTERS ==========================*/
+/**
+ * Check Staff Has Access
+ */
+add_hook('staff_has_access', 'staff_has_access', 1000);

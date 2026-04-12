@@ -15,15 +15,6 @@ use Laika\Core\Auth\Auth;
 /*=============================== ADMIN INFO ===============================*/
 /**
  * Get Logged-in Staff Info
- * @deprecated
- */
-function staff(): ?array
-{
-    return call_user_func([new Auth(ADMIN), 'user']);
-}
-
-/**
- * Get Logged-in Staff Info
  * @return ?array
  */
 function current_staff(): ?array
@@ -32,17 +23,21 @@ function current_staff(): ?array
 }
 
 /*================================= ACCESS =================================*/
+
 /**
- * CHeck Admin Has Access
+ * Check Staff Has Access
  * @param string $access Access Name. Example: 'product.read'
  */
-function admin_access(string $access): bool
+function staff_has_access(string $access): bool
 {
-    $user = staff();
+    $user = current_staff();
     $parts = explode('.', $access);
     $name = $parts[0];
-    $action = strtolower($parts[1] ?? 'unknown');
-    return $user['role']['accesses'][$name][$action] ?? false;
+    if (!isset($parts[1])) {
+        return false;
+    }
+    $action = strtolower($parts[1]);
+    return $user['permissions'][$name][$action] ?? false;
 }
 
 /**
