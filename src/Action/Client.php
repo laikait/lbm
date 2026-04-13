@@ -12,8 +12,6 @@ declare(strict_types=1);
 namespace LBM\Action;
 
 use Laika\Core\Relay\Relays\Request;
-use Laika\Core\Relay\Relays\Header;
-use Laika\Core\Relay\Relays\Date;
 use App\Model\ClientModel;
 use LBM\Exception\ActionException;
 use App\Model\ClientNoteModel;

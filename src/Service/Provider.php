@@ -13,6 +13,10 @@ use Laika\Core\Relay\RelayProvider;
 use LBM\Action\Activity;
 use LBM\Action\StaffAuth;
 use LBM\Action\Client;
+use LBM\Action\ClientContact;
+use LBM\Action\Invoice;
+use LBM\Action\Staff;
+use LBM\Action\Support;
 use LBM\Support\Initiate;
 
 class Provider extends RelayProvider
@@ -23,5 +27,9 @@ class Provider extends RelayProvider
         $this->registry->singleton('action.activity', Activity::class);
         $this->registry->singleton('action.auth.staff', StaffAuth::class);
         $this->registry->singleton('action.client', Client::class);
+        $this->registry->singleton('action.client.contact', ClientContact::class);
+        $this->registry->singleton('action.invoice', Invoice::class);
+        $this->registry->singleton('action.staff', Staff::class);
+        $this->registry->singleton('action.support', Support::class);
     } 
 }

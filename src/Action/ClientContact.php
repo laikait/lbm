@@ -11,29 +11,22 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Http\Request;
-use Laika\Core\Http\Response;
-use Laika\App\Model\ClientModel;
+use Laika\Core\Relay\Relays\Request;
+use App\Model\ClientModel;
 use LBM\Exception\ActionException;
-use Laika\App\Model\ClientNoteModel;
-use Laika\App\Model\ClientTokenModel;
-use Laika\App\Model\StaffStatusModel;
-use Laika\App\Model\ClientStatusModel;
-use Laika\App\Model\ClientContactModel;
-use Laika\App\Model\ClientServiceModel;
-use Laika\App\Model\ClientServiceNoteModel;
-use Laika\App\Model\ClientServiceAddonModel;
-use Laika\App\Model\ClientServiceStatusModel;
-use Laika\App\Model\ClientServiceConfigValueModel;
+use App\Model\ClientNoteModel;
+use App\Model\ClientTokenModel;
+use App\Model\StaffStatusModel;
+use App\Model\ClientStatusModel;
+use App\Model\ClientContactModel;
+use App\Model\ClientServiceModel;
+use App\Model\ClientServiceNoteModel;
+use App\Model\ClientServiceAddonModel;
+use App\Model\ClientServiceStatusModel;
+use App\Model\ClientServiceConfigValueModel;
 
 class ClientContact
 {
-    /** @var Request $request */
-    protected Request $request;
-
-    /** @var Response $redirect */
-    protected Response $response;
-
     /** @var ClientModel $model */
     protected ClientModel $model;
 
@@ -43,43 +36,33 @@ class ClientContact
     /** @var ClientNoteModel $note_model */
     protected ClientNoteModel $note_model;
 
-    /** @var string $timezone */
-    protected string $timezone;
+    /** @var int $limit */
+    protected int $limit;
 
-    /** @var string $timeformat */
-    protected string $timeformat;
-
-    public function __construct(?Request $request = null, ?Response $response = null)
+    public function __construct()
     {
-        $this->request = empty($request) ? new Request() : $request;
-        $this->response = empty($response) ? new Response() : $response;
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
         $this->note_model = new ClientNoteModel();
-        $this->timezone = do_hook('option', 'time.zone', 'UTC');
-        $this->timeformat = do_hook('option', 'datetime.format', 'Y-M-d H:i:s');
+        $this->limit = do_hook('option.int', 'data.limit', 20);
     }
 
     /**
      * Get Clients By Page Number
+     * @param string|array|null $columns Default is null
      * @return array
      */
-    public function limit(): array
+    public function limit(string|array|null $columns = null): array
     {
-        $select = ['id', 'company_name', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'phone_cc', 'phone_number', 'status_name', 'status_color', 'created_at'];
-        $clients = $this->model
-                ->select(implode(', ', $select))
+        $columns = $columns ?: ['id', 'company_name', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'phone_cc', 'phone_number', 'status_name', 'status_color', 'created_at'];
+
+        return $this->model
+                ->select($columns)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset($this->request->input('page', 1))
-                ->limit(do_hook('option.int', 'data.limit', 20))
+                ->offset(Request::input('page', 1))
+                ->limit($this->limit)
                 ->get();
-
-        // Set DateTime Format
-        foreach ($clients as $k => $client) {
-            $clients[$k]['created_at'] = do_hook('time.local.format', $client['created_at'], $this->timeformat, $this->timezone);
-        }
-        return $clients;
     }
 
     /**
@@ -101,30 +84,23 @@ class ClientContact
             'email' => $entity,
         ];
 
-        $this->model = $this->model->select(implode(', ', $columns));
+        $model = $this->model->select($columns);
         // Join Statuses if Exists
-        if (in_array('status_relid', $columns) || in_array('status_id', $columns) || in_array('status_name', $columns)
-        ) {
-            $this->model = $this->model->join($this->status_model->table, 'status_relid', '=', $this->status_model->id);
+        if (in_array('status_id', $columns) || in_array('status_name', $columns) || in_array('status_color', $columns)) {
+            $model = $this->model->join($this->status_model->table, 'status_relid', '=', $this->status_model->id);
         }
 
-        $staff = $this->model->where($where, '=', 'OR')
-                    ->first();
-        // Convert Timestamps to Local
-        if (isset($staff['created_at'])) $staff['created_at'] = do_hook('time.local.format', $staff['created_at']);
-        if (isset($staff['last_login_at'])) $staff['last_login_at'] = do_hook('time.local.format', $staff['last_login_at']);
-        if (isset($staff['updated_at'])) $staff['updated_at'] = do_hook('time.local.format', $staff['updated_at']);
-
-        return $staff;
+        return $model->where($where, '=', 'OR')->first();
     }
 
     /**
      * Update Single Client
+     * @param int|string $entity
      * @return ?array
      */
-    public function update_client()
+    public function update(int|string $entity): ?array
     {
-        if ($this->request->isPost()) {
+        if (Request::isPost()) {
             return ['status' => true, 'message' => 'Success'];
         }
         return null;
@@ -149,7 +125,7 @@ class ClientContact
      */
     public function queries(): array
     {
-        $query_to_column = ['id' => 'id', 'username' => 'username', 'email' => 'email', 'fname' => 'first_name', 'lname' => 'last_name', 'status' => 'status_name'];
-        return get_accepted_queries($this->request->inputs(), $query_to_column);
+        $query_to_column = ['cid' => 'id', 'username' => 'username', 'email' => 'email', 'fname' => 'first_name', 'lname' => 'last_name', 'status' => 'status_name'];
+        return get_accepted_queries(Request::inputs(), $query_to_column);
     }
 }

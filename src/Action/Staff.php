@@ -11,21 +11,14 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Http\Request;
-use Laika\Core\Http\Response;
-use Laika\App\Model\StaffModel;
-use Laika\App\Model\StaffRoleModel;
-use Laika\App\Model\StaffStatusModel;
+use Laika\Core\Relay\Relays\Request;
+use App\Model\StaffModel;
+use App\Model\StaffRoleModel;
+use App\Model\StaffStatusModel;
 use LBM\Exception\ActionException;
 
 class Staff
 {
-    /** @var Request $request */
-    protected Request $request;
-
-    /** @var Response $response */
-    protected Response $response;
-
     /** @var StaffModel $model */
     protected StaffModel $model;
 
@@ -35,43 +28,33 @@ class Staff
     /** @var StaffStatusModel $status_model */
     protected StaffStatusModel $status_model;
 
-    /** @var string $timezone */
-    protected string $timezone;
+    /** @var int $limit */
+    protected int $limit;
 
-    /** @var string $timeformat */
-    protected string $timeformat;
-
-    public function __construct(?Request $request = null, ?Response $response = null)
+    public function __construct()
     {
-        $this->request = empty($request) ? new Request() : $request;
-        $this->response = empty($response) ? new Response() : $response;
         $this->model = new StaffModel();
         $this->role_model = new StaffRoleModel();
         $this->status_model = new StaffStatusModel();
-        $this->timezone = do_hook('option', 'time.zone', 'UTC');
-        $this->timeformat = do_hook('option', 'datetime.format', 'Y-M-d H:i:s');
+        $this->limit = do_hook('option.int', 'data.limit', 20);
     }
 
     /**
      * Get Staffs By Page Number
+     * @param string|array|null $columns Default is null
      * @return array
      */
-    public function limit(): array
+    public function limit(string|array|null $columns = null): array
     {
-        $columns = ['sid', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'last_login_at', 'status_name', 'status_color', 'created_at'];
-        $staffs = $this->model
+        $columns = $columns  ?: ['sid', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'last_login_at', 'status_name', 'status_color', 'created_at'];
+
+        return $this->model
                 ->select($columns)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset($this->request->input('page', 1))
-                ->limit(do_hook('option.int', 'data.limit', 20))
+                ->offset(Request::input('page', 1))
+                ->limit($this->limit)
                 ->get();
-
-        // Set DateTime Format
-        foreach ($staffs as $k => $staff) {
-            $staffs[$k]['created_at'] = do_hook('time.local.format', $staff['created_at'], $this->timeformat, $this->timezone);
-        }
-        return $staffs;
     }
 
     /**
@@ -93,38 +76,31 @@ class Staff
             'email' => $entity,
         ];
 
-        $this->model = $this->model->select($columns);
+        $model = $this->model->select($columns);
+
         // Join Roles if Exists
         if (in_array('role_relid', $columns) || in_array('role_id', $columns) || in_array('role_name', $columns)
         ) {
-            $this->model = $this->model->join($this->role_model->table, 'role_relid', '=', $this->role_model->id);
+            $model = $this->model->join($this->role_model->table, 'role_relid', '=', $this->role_model->id);
         }
+
         // Join Statuses if Exists
         if (in_array('status_relid', $columns) || in_array('status_id', $columns) || in_array('status_name', $columns)
         ) {
-            $this->model = $this->model->join($this->status_model->table, 'status_relid', '=', $this->status_model->id);
+            $model = $this->model->join($this->status_model->table, 'status_relid', '=', $this->status_model->id);
         }
 
-        $staff = $this->model->where($where, '=', 'OR')
-                    ->first();
-        // Convert Timestamps to Local
-        if (isset($staff['created_at'])) $staff['created_at'] = do_hook('time.local.format', $staff['created_at'], $this->timeformat, $this->timezone);
-        if (isset($staff['last_login_at'])) $staff['last_login_at'] = do_hook('time.local.format', $staff['last_login_at'], $this->timeformat, $this->timezone);
-        if (isset($staff['updated_at'])) $staff['updated_at'] = do_hook('time.local.format', $staff['updated_at'], $this->timeformat, $this->timezone);
-        if (isset($staff['deleted_at'])) $staff['deleted_at'] = do_hook('time.local.format', $staff['deleted_at'], $this->timeformat, $this->timezone);
-        if (isset($staff['role_created_at'])) $staff['role_created_at'] = do_hook('time.local.format', $staff['role_created_at'], $this->timeformat, $this->timezone);
-        if (isset($staff['role_updated_at'])) $staff['role_updated_at'] = do_hook('time.local.format', $staff['role_updated_at'], $this->timeformat, $this->timezone);
-
-        return $staff;
+        return $model->where($where, '=', 'OR')->first();
     }
 
     /**
      * Update Single Staff
+     * @param int|string $entity
      * @return ?array
      */
-    public function update_staff()
+    public function update(int|string $entity): ?array
     {
-        if ($this->request->isPost()) {
+        if (Request::isPost()) {
             return ['status' => true, 'message' => 'Success'];
         }
         return null;
@@ -150,7 +126,7 @@ class Staff
      */
     public function queries(): array
     {
-        $query_to_column = ['id' => 'id', 'username' => 'username', 'email' => 'email', 'fname' => 'first_name', 'lname' => 'last_name', 'status' => 'status_name', 'role' => 'role_name'];
-        return get_accepted_queries($this->request->inputs(), $query_to_column);
+        $query_to_column = ['sid' => 'id', 'username' => 'username', 'email' => 'email', 'fname' => 'first_name', 'lname' => 'last_name', 'status' => 'status_name', 'role' => 'role_name'];
+        return get_accepted_queries(Request::inputs(), $query_to_column);
     }
 }

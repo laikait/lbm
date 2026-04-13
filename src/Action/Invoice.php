@@ -11,23 +11,17 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Http\Request;
-use Laika\Core\Http\Response;
-use Laika\App\Model\ClientModel;
-use Laika\App\Model\InvoiceModel;
-use Laika\App\Model\CurrencyModel;
-use Laika\App\Model\InvoiceItemModel;
-use Laika\App\Model\InvocieStatusModel;
-use Laika\App\Model\InvoiceItemTypeModel;
+use Laika\Core\Relay\Relays\Request;
+use App\Model\ClientModel;
+use App\Model\InvoiceModel;
+use App\Model\CurrencyModel;
+use App\Model\InvoiceItemModel;
+use App\Model\InvocieStatusModel;
+use App\Model\InvoiceItemTypeModel;
+use LBM\Exception\ActionException;
 
 class Invoice
 {
-    /** @var Request $request */
-    protected Request $request;
-
-    /** @var Response $redirect */
-    protected Response $response;
-
     /** @var InvoiceModel $model */
     protected InvoiceModel $model;
 
@@ -46,35 +40,18 @@ class Invoice
     /** @var InvocieStatusModel $status_model */
     protected InvocieStatusModel $status_model;
 
-    /** @var string $timezone */
-    protected string $timezone;
+    /** @var int $limit */
+    protected int $limit;
 
-    /** @var string $timeformat */
-    protected string $timeformat;
-
-    public function __construct(?Request $request = null, ?Response $response = null)
+    public function __construct()
     {
-        $this->request = empty($request) ? new Request() : $request;
-        $this->response = empty($response) ? new Response() : $response;
         $this->model = new InvoiceModel();
         $this->client_model = new ClientModel();
         $this->item_model = new InvoiceItemModel();
         $this->type_model = new InvoiceItemTypeModel();
         $this->currency_model = new CurrencyModel();
         $this->status_model = new InvocieStatusModel();
-        $this->timezone = do_hook('option', 'time.zone', 'UTC');
-        $this->timeformat = do_hook('option', 'datetime.format', 'Y-M-d H:i:s');
-    }
-
-    /**
-     * Get Single Invoice From id/number
-     * @param int $id A Entity. Example: 1/inv-20241205
-     * @param array $columns Columns to Get
-     * @return array
-     */
-    public function single(int $id, array $columns): array
-    {
-        return $this->model->select($columns)->where(['id' => 1])->first();
+        $this->limit = do_hook('option.int', 'data.limit', 20);
     }
 
     /**
@@ -85,25 +62,44 @@ class Invoice
     public function latest(?int $limit = null)
     {
         $columns = ['invoice_id', 'invoice_number', 'total', 'currency_id', 'currency_code', 'currency_symbol', 'cid', 'company_name', 'username', 'status_name', 'status_color', 'invoice_created_at'];
-        $invoices = $this->model
+
+        return $this->model
                 ->select($columns)
                 ->join($this->currency_model->table, 'currency_relid', '=', $this->currency_model->id)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->join($this->client_model->table, 'client_relid', '=', $this->client_model->id)
                 ->order($this->model->id, 'DESC')
-                ->limit($limit ?: do_hook('option.int', 'data.limit', 20))
+                ->limit($this->limit)
                 ->get();
-        foreach($invoices as $k => $inv) {
-            $invoices[$k]['invoice_created_at'] = do_hook('time.local.format', $inv['invoice_created_at'], $this->timeformat, $this->timezone);
-        }
-        return $invoices;
+
     }
 
     /**
-     * Get Group By
+     * Get Single Invoice From id/number
+     * @param int $entity A Entity. Example: 1/inv-20241205
+     * @param array $columns Columns to Get
      * @return array
      */
-    public function group()
+    public function single(int $entity, array $columns): array
+    {
+        // Throw Error If Empty Column(s) Given
+        if (empty($columns)) {
+            throw new ActionException("Invalid Column(s) In " . __METHOD__);
+        }
+
+        $where = [
+            'invoice_id' => $entity,
+            'invoice_number' => $entity
+        ];
+
+        return $this->model->select($columns)->where($where, '=', 'OR')->first();
+    }
+
+    /**
+     * Count Per Status
+     * @return array
+     */
+    public function countPerStatus()
     {
         $columns = ['status_name as label', 'count(invoice_id) as count', 'status_color as color'];
         return $this->model
