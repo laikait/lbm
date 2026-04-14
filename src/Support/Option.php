@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace LBM\Support;
 
-use Laika\App\Model\OptionsModel;
+use App\Model\OptionsModel;
 
 class Option
 {

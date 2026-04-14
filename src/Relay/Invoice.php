@@ -20,6 +20,6 @@ class Invoice extends Relay
 {
     protected static function getRelayAccessor(): string
     {
-        return 'action.client.contact';
+        return 'action.invoice';
     } 
 }

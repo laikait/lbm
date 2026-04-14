@@ -15,7 +15,7 @@ use Laika\Core\Relay\Relay;
  * @method static ?array login()
  * @method static ?array validate()
  */
-class StaffAuth extends Relay
+class AuthStaff extends Relay
 {
     protected static function getRelayAccessor(): string
     {

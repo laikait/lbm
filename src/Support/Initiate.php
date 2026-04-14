@@ -14,7 +14,7 @@ namespace LBM\Support;
 use Laika\Model\Connection;
 use Laika\Core\Relay\Relays\Local;
 use Laika\Core\Relay\Relays\Date;
-use Laika\Session\SessionManager;
+use Laika\Session\Relay\Session;
 
 class Initiate
 {
@@ -32,17 +32,18 @@ class Initiate
 
     /**
      * Initiate Defaults
-     * @param ?string $user_type
+     * @param ?string $type
      * @return void
      */
-    public function common(?string $user_type = null): void
+    public function common(?string $type = null): void
     {
         // Initiate Session
         $dbsession = do_hook('option.bool', 'dbsession');
-        $dbsession ? SessionManager::config(Connection::get()) : SessionManager::config();
+        $dbsession ? Session::config(Connection::get()) : Session::config();
+        Session::for($type);
 
         // Initiate Local
-        switch (strtolower((string) $user_type)) {
+        switch (strtolower((string) $type)) {
             case strtolower(ADMIN):
                 Local::set(do_hook('option', 'admin.local', 'en'));
                 Local::setPath('admin');

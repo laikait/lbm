@@ -12,92 +12,77 @@
 
 declare(strict_types=1);
 
-use Laika\Core\Helper\NavBuilder;
-use LBM\Factory\Addons;
+use Laika\Core\Relay\Relays\Nav;
 
 /*=============================== NAVBAR ===============================*/
 // Add Admin Nav Header Filter
 add_hook('admin.nav.header', function(){
-    $nav = new NavBuilder();
     // Dashboard
-        $nav->add(LANG::$dashboard, named(ADMIN, url:true))
-            // Clients
-            ->add(LANG::$clients, named('staff.clients', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-client', url:true), null, staff_has_access('client.create'));
-                $n->add('--'.LANG::$active, named('staff.clients?status=active', url:true));
-                $n->add('--'.LANG::$inactive, named('staff.clients?status=inactive', url:true));
-                $n->add('--'.LANG::$suspended, named('staff.clients?status=suspended', url:true));
-            }, staff_has_access('client.read'))
+    Nav::add(LANG::$dashboard, named('staff.dashboard', url:true));
 
-            // Products/Services
-            ->add(LANG::$products, named('staff.products', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-product', url:true), null, staff_has_access('product.create'));
-                $n->add('--'.LANG::$active, named('staff.products?status=active', url:true));
-                $n->add('--'.LANG::$inactive, named('staff.products?status=inactive', url:true));
-                $n->add('--'.LANG::$suspended, named('staff.products?status=suspended', url:true));
-            }, staff_has_access('product.read'))
+    // Clients
+    Nav::add(LANG::$clients, named('staff.dashboard', url:true))
+            ->child(LANG::$add, named('staff.add-client', url:true), staff_has_access('client.create'))->end()
+            ->child('--'.LANG::$active, named('staff.clients?status=active', url:true))->end()
+            ->child('--'.LANG::$inactive, named('staff.clients?status=inactive', url:true))->end()
+            ->child('--'.LANG::$suspended, named('staff.clients?status=suspended', url:true))->end();
 
-            // Orders
-            ->add(LANG::$orders, named('staff.orders', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-order', url:true), null, staff_has_access('order.read'));
-                $n->add('--'.LANG::$active, named('staff.orders?status=active', url:true));
-                $n->add('--'.LANG::$pending, named('staff.orders?status=pending', url:true));
-                $n->add('--'.LANG::$canceled, named('staff.orders?status=canceled', url:true));
-                $n->add('--'.LANG::$suspended, named('staff.orders?status=suspended', url:true));
-                $n->add('--'.LANG::$fraud, named('staff.orders?status=fraud', url:true));
-            }, staff_has_access('order.read'))
+    // Products/Services
+    Nav::add(LANG::$products, named('staff.products', url:true))
+            ->child(LANG::$add, named('staff.add-product', url:true), staff_has_access('product.create'))->end()
+            ->child('--'.LANG::$active, named('staff.products?status=active', url:true))->end()
+            ->child('--'.LANG::$inactive, named('staff.products?status=inactive', url:true))->end()
+            ->child('--'.LANG::$suspended, named('staff.products?status=suspended', url:true))->end();
 
-            // Invoices
-            ->add(LANG::$invoices, named('staff.invoices', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-invoice', url:true), null, staff_has_access('invoice.create'));
-                $n->add('--'.LANG::$paid, named('staff.invoices?status=paid', url:true));
-                $n->add('--'.LANG::$unpaid, named('staff.invoices?status=unpaid', url:true) );
-                $n->add('--'.LANG::$canceled, named('staff.invoices?status=canceled', url:true));
-                $n->add('--'.LANG::$overdue, named('staff.invoices?status=overdue', url:true));
-                $n->add('--'.LANG::$refunded, named('staff.invoices?status=refunded', url:true));
-            }, staff_has_access('invoice.read'))
+    // Orders
+    Nav::add(LANG::$orders, named('staff.orders', url:true))
+            ->child(LANG::$add, named('staff.add-order', url:true), staff_has_access('order.create'))->end()
+            ->child('--'.LANG::$active, named('staff.orders?status=active', url:true))->end()
+            ->child('--'.LANG::$pending, named('staff.orders?status=pending', url:true))->end()
+            ->child('--'.LANG::$canceled, named('staff.orders?status=canceled', url:true))->end()
+            ->child('--'.LANG::$suspended, named('staff.orders?status=suspended', url:true))->end()
+            ->child('--'.LANG::$fraud, named('staff.orders?status=fraud', url:true))->end();
 
-            // Support
-            ->add(LANG::$support, named('staff.tickets', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-ticket', url:true), null, staff_has_access('ticket.create'));
-                $n->add('--'.LANG::$open, named('staff.invoices?status=open', url:true));
-                $n->add('--'.LANG::$ongoing, named('staff.tickets?status=ongoing', url:true));
-                $n->add('--'.LANG::$closed, named('staff.tickets?status=closed', url:true));
-                $n->add('--'.LANG::$solved, named('staff.tickets?status=solved', url:true));
-                $n->add(LANG::$networkStatus, named('staff.network', url:true));
-            }, staff_has_access('ticket.read'))
+    // Invoices
+    Nav::add(LANG::$invoices, named('staff.invoices', url:true))
+            ->child(LANG::$add, named('staff.add-invoice', url:true), staff_has_access('invoice.create'))->end()
+            ->child('--'.LANG::$paid, named('staff.invoices?status=paid', url:true))->end()
+            ->child('--'.LANG::$unpaid, named('staff.invoices?status=unpaid', url:true))->end()
+            ->child('--'.LANG::$canceled, named('staff.invoices?status=canceled', url:true))->end()
+            ->child('--'.LANG::$overdue, named('staff.invoices?status=overdue', url:true))->end()
+            ->child('--'.LANG::$refunded, named('staff.invoices?status=refunded', url:true))->end();
 
-            // Reports
-            ->add(LANG::$reports, named('staff.reports', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-report', url:true), null, staff_has_access('report.create'));
-                $n->add(LANG::$invoiceReport, named('staff.invoice-report', url:true));
-                $n->add(LANG::$orderReport, named('staff.order-report', url:true));
-                $n->add(LANG::$ticketFeedbacks, named('staff.ticket-feedbacks', url:true));
-            }, staff_has_access('ticket.read'))
+    // Support
+    Nav::add(LANG::$support, named('staff.tickets', url:true))
+            ->child(LANG::$add, named('staff.add-ticket', url:true), staff_has_access('ticket.create'))->end()
+            ->child('--'.LANG::$open, named('staff.tickets?status=open', url:true))->end()
+            ->child('--'.LANG::$ongoing, named('staff.tickets?status=ongoing', url:true))->end()
+            ->child('--'.LANG::$closed, named('staff.tickets?status=closed', url:true))->end()
+            ->child('--'.LANG::$solved, named('staff.tickets?status=solved', url:true))->end()
+            ->child(LANG::$networkStatus, named('staff.network', url:true))->end();
 
-            // Staffs
-            ->add(LANG::$staffs, named('staff.staffs', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-staff', url:true), null, staff_has_access('staff.create'));
-                $n->add('--'.LANG::$active, named('staff.staffs?status=active', url:true));
-                $n->add('--'.LANG::$inactive, named('staff.staffs?status=inactive', url:true));
-                $n->add('--'.LANG::$suspended, named('staff.staffs?status=suspended', url:true));
-            }, staff_has_access('staff.read'))
+    // Support
+    Nav::add(LANG::$reports, named('staff.reports', url:true))
+            ->child(LANG::$invoiceReport, named('staff.invoice-report', url:true))->end()
+            ->child(LANG::$orderReport, named('staff.order-report', url:true))->end()
+            ->child(LANG::$ticketFeedbacks, named('staff.ticket-feedbacks', url:true))->end();
 
-            // Addons
-            ->add(LANG::$addons, named('staff.addons', url:true), function(NavBuilder $n){
-                $addons = Addons::get();
-                foreach ($addons as $addon) {
-                    $n->add($addon['title'], named('staff.addon', ['name' => $addon['url']], true));
-                }
-            }, staff_has_access('staff.read'))
+    // Staffs
+    Nav::add(LANG::$staffs, named('staff.staffs', url:true))
+            ->child(LANG::$add, named('staff.add-staff', url:true), staff_has_access('staff.create'))->end()
+            ->child('--'.LANG::$active, named('staff.staffs?status=active', url:true))->end()
+            ->child('--'.LANG::$inactive, named('staff.staffs?status=inactive', url:true))->end()
+            ->child('--'.LANG::$suspended, named('staff.staffs?status=suspended', url:true))->end();
 
-            // Noticeboard
-            ->add(LANG::$noticeboard, named('staff.noticeboard', url:true), function(NavBuilder $n){
-                $n->add(LANG::$add, named('staff.add-notice', url:true), null, staff_has_access('notice.create'));
-            }, staff_has_access('notice.read'));
+    // Addons
+    Nav::add(LANG::$addons, named('staff.addons', url:true)); // Add Addons Sub Menu Later From Addons Class
+
+    // Noticeboard
+    Nav::add(LANG::$noticeboard, named('staff.noticeboard', url:true))
+            ->child(LANG::$add, named('staff.add-notice', url:true), staff_has_access('notice.create'))->end();
     
     // Render & Return
-    return $nav->render('admin-nav');
+    return Nav::render('admin-nav');
 }, 1000);
 
 // Admin Settings Link

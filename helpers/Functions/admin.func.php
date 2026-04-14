@@ -10,7 +10,8 @@
 
 declare(strict_types=1);
 
-use Laika\Core\Auth\Auth;
+// use Laika\Core\Auth\Auth;
+use Laika\Core\Relay\Relays\Auth;
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -19,7 +20,7 @@ use Laika\Core\Auth\Auth;
  */
 function current_staff(): ?array
 {
-    return call_user_func([new Auth(ADMIN), 'user']);
+    return Auth::user();
 }
 
 /*================================= ACCESS =================================*/

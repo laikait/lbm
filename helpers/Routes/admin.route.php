@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Laika Bill Manager
  * Author: Showket Ahmed
@@ -10,21 +9,24 @@
 /*----------------------------- LBM ROUTES -----------------------------*/
 ##########################################################################
 use Laika\Core\App\Router;
+use App\Middleware\Admin\Init; // Use It In 1st Middleware Each Admin Routes Without Login Pages
+use App\Middleware\Admin\Login; // Only For Login Page
+use App\Middleware\Admin\Fallback;
 
 // Admin Panel Fallback
-Router::fallback(ADMIN, null, 'Auth\Checker|type='.ADMIN);
+Router::fallback(ADMIN, null, Fallback::class);
 
 // Admin Login Routes
 Router::group(ADMIN, function(){
     Router::get('/login', 'Admin\Login@index')->name('staff.login'); // Done
     Router::post('/login', 'Admin\Login@index');
-}, ['Auth\Maker|type='.ADMIN]);
+}, [Login::class]);
 
 
 // Admin Route Group
 Router::group(ADMIN, function(){
     // Dashboard, Login & Logout
-    Router::get('/', 'Admin\Dashboard@index')->middleware('Admin\Dashboard')->name('staff.dashboard'); // Almost Done
+    Router::get('/', 'Admin\Dashboard@index')->name('staff.dashboard'); // Almost Done
     Router::get('/logout')->middleware('Admin\Logout')->name('staff.logout'); // Done
 
     // Clients
@@ -54,7 +56,7 @@ Router::group(ADMIN, function(){
     Router::get('/my-account', function(){})->name('staff.account');
     Router::get('/settings', function(){})->name('settings');
 
-},['Auth\Checker|type='.ADMIN]);
+},[Init::class]);
 
 // Admin Add Route Group
 Router::group(ADMIN . '/add', function(){

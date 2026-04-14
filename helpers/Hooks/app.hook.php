@@ -27,8 +27,8 @@ add_hook('option', function(string $key, mixed $default = ''){
  * @return int
  */
 add_hook('option.int', function(string $key, int $default = 0): int{
-    $value = \do_hook('option', $key, $default);
-    return preg_match('/^[0-9]+$/i', $value) ? (int) $value : $default;
+    $value = do_hook('option', $key, $default);
+    return preg_match('/^[0-9]+$/i', (string) $value) ? (int) $value : $default;
 }, 1000);
 
 /**
