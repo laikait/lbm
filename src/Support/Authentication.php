@@ -12,29 +12,21 @@ declare(strict_types=1);
 namespace LBM\Support;
 
 use LBM\Action\AuthUser;
-use Laika\Core\Http\Request;
-use Laika\Core\Http\Response;
+use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Relay\Relays\Response;
 use LBM\Exception\SupportException;
 
 class Authentication
 {
-    /** @param Request $request */
-    protected Request $request;
-
-    /** @param Response $response */
-    protected Response $response;
-
-    /** @param string $type */
+    /** @var string $type */
     protected string $type;
 
-    public function __construct(string $type, ?Request $request = null, ?Response $response = null)
+    public function __construct(string $type)
     {
         if (!in_array($type, [ADMIN, PANEL])) {
             throw new SupportException("Invalid User Type: [{$type}]");
         }
         $this->type = $type;
-        $this->request = empty($request) ? new Request() : $request;
-        $this->response = empty($response) ? new Response() : $response;
     }
 
     /**
@@ -43,7 +35,7 @@ class Authentication
      */
     public function login(): ?array
     {
-        $auth = new AuthUser($this->request, $this->response);
+        $auth = new AuthUser();
         return match ($this->type) {
             ADMIN   =>  $auth->staff_login(),
             PANEL   =>  $auth->panel_login(),
