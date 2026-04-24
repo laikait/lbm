@@ -12,9 +12,12 @@ namespace LBM\Relay;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array latest(?int $limit = null)
- * @method static array single(int $entity, array $columns)
- * @method static array countPerStatus()
+ * @method static array     latest(?int $limit = null)
+ * @method static array     single(int $entity, array $columns)
+ * @method static array     groupByStatus()
+ * @method static string    totalSpentByClient(int $client_relid)
+ * @method static string    totalOutstandingByClient(int $client_relid)
+ * @method static array     clientInvoices(int $client_relid)
  */
 class Invoice extends Relay
 {

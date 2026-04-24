@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Laika Bill Manager
  * Author: Showket Ahmed
@@ -16,27 +15,27 @@ use Laika\Core\Relay\Relays\Nav;
 
 /*=============================== NAVBAR ===============================*/
 // Add Admin Nav Header Filter
-add_hook('admin.nav.header', function(){
+add_hook('admin.nav.header', function($class){
     // Dashboard
     Nav::add(LANG::$dashboard, named('staff.dashboard', url:true));
 
     // Clients
-    Nav::add(LANG::$clients, named('staff.dashboard', url:true))
-            ->child(LANG::$add, named('staff.add-client', url:true), staff_has_access('client.create'))->end()
+    Nav::add(LANG::$clients, named('staff.clients', url:true))
+            ->child(LANG::$add, named('staff.add.client', url:true), staff_has_access('client.create'))->end()
             ->child('--'.LANG::$active, named('staff.clients?status=active', url:true))->end()
             ->child('--'.LANG::$inactive, named('staff.clients?status=inactive', url:true))->end()
             ->child('--'.LANG::$suspended, named('staff.clients?status=suspended', url:true))->end();
 
     // Products/Services
     Nav::add(LANG::$products, named('staff.products', url:true))
-            ->child(LANG::$add, named('staff.add-product', url:true), staff_has_access('product.create'))->end()
+            ->child(LANG::$add, named('staff.add.product', url:true), staff_has_access('product.create'))->end()
             ->child('--'.LANG::$active, named('staff.products?status=active', url:true))->end()
             ->child('--'.LANG::$inactive, named('staff.products?status=inactive', url:true))->end()
             ->child('--'.LANG::$suspended, named('staff.products?status=suspended', url:true))->end();
 
     // Orders
     Nav::add(LANG::$orders, named('staff.orders', url:true))
-            ->child(LANG::$add, named('staff.add-order', url:true), staff_has_access('order.create'))->end()
+            ->child(LANG::$add, named('staff.add.order', url:true), staff_has_access('order.create'))->end()
             ->child('--'.LANG::$active, named('staff.orders?status=active', url:true))->end()
             ->child('--'.LANG::$pending, named('staff.orders?status=pending', url:true))->end()
             ->child('--'.LANG::$canceled, named('staff.orders?status=canceled', url:true))->end()
@@ -45,7 +44,7 @@ add_hook('admin.nav.header', function(){
 
     // Invoices
     Nav::add(LANG::$invoices, named('staff.invoices', url:true))
-            ->child(LANG::$add, named('staff.add-invoice', url:true), staff_has_access('invoice.create'))->end()
+            ->child(LANG::$add, named('staff.add.invoice', url:true), staff_has_access('invoice.create'))->end()
             ->child('--'.LANG::$paid, named('staff.invoices?status=paid', url:true))->end()
             ->child('--'.LANG::$unpaid, named('staff.invoices?status=unpaid', url:true))->end()
             ->child('--'.LANG::$canceled, named('staff.invoices?status=canceled', url:true))->end()
@@ -54,7 +53,7 @@ add_hook('admin.nav.header', function(){
 
     // Support
     Nav::add(LANG::$support, named('staff.tickets', url:true))
-            ->child(LANG::$add, named('staff.add-ticket', url:true), staff_has_access('ticket.create'))->end()
+            ->child(LANG::$add, named('staff.add.ticket', url:true), staff_has_access('ticket.create'))->end()
             ->child('--'.LANG::$open, named('staff.tickets?status=open', url:true))->end()
             ->child('--'.LANG::$ongoing, named('staff.tickets?status=ongoing', url:true))->end()
             ->child('--'.LANG::$closed, named('staff.tickets?status=closed', url:true))->end()
@@ -69,7 +68,7 @@ add_hook('admin.nav.header', function(){
 
     // Staffs
     Nav::add(LANG::$staffs, named('staff.staffs', url:true))
-            ->child(LANG::$add, named('staff.add-staff', url:true), staff_has_access('staff.create'))->end()
+            ->child(LANG::$add, named('staff.add.staff', url:true), staff_has_access('staff.create'))->end()
             ->child('--'.LANG::$active, named('staff.staffs?status=active', url:true))->end()
             ->child('--'.LANG::$inactive, named('staff.staffs?status=inactive', url:true))->end()
             ->child('--'.LANG::$suspended, named('staff.staffs?status=suspended', url:true))->end();
@@ -79,10 +78,10 @@ add_hook('admin.nav.header', function(){
 
     // Noticeboard
     Nav::add(LANG::$noticeboard, named('staff.noticeboard', url:true))
-            ->child(LANG::$add, named('staff.add-notice', url:true), staff_has_access('notice.create'))->end();
+            ->child(LANG::$add, named('staff.add.notice', url:true), staff_has_access('notice.create'))->end();
     
     // Render & Return
-    return Nav::render('admin-nav');
+    return Nav::render($class);
 }, 1000);
 
 // Admin Settings Link

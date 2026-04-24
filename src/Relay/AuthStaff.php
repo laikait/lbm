@@ -14,6 +14,8 @@ use Laika\Core\Relay\Relay;
 /**
  * @method static ?array login()
  * @method static ?array validate()
+ * @method static ?array user()
+ * @method static void destroy()
  */
 class AuthStaff extends Relay
 {

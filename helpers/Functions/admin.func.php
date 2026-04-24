@@ -10,8 +10,7 @@
 
 declare(strict_types=1);
 
-// use Laika\Core\Auth\Auth;
-use Laika\Core\Relay\Relays\Auth;
+use LBM\Relay\AuthStaff;
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -20,7 +19,7 @@ use Laika\Core\Relay\Relays\Auth;
  */
 function current_staff(): ?array
 {
-    return Auth::user();
+    return AuthStaff::user();
 }
 
 /*================================= ACCESS =================================*/
@@ -47,11 +46,14 @@ function staff_has_access(string $access): bool
  * @param array{string:string} $keyValuePair [query_key => db_column...]. Example: ['id' => 'note_id']
  * @return array
  */
-function get_accepted_queries(array $inputs, array $keyValuePair): array
+function query_to_columns(array $inputs, array $keyValuePair): array
 {
     $keys = [];
     // Get Accepted Query Values
     foreach($inputs as $k => $v) {
+        if (!$v) {
+            continue;
+        }
         if (in_array($k, array_keys($keyValuePair))) {
             $keys[$keyValuePair[$k]] = $v;
         }

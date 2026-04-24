@@ -13,9 +13,13 @@ use Laika\Core\Relay\Relay;
 
 /**
  * @method static array limit(string|array|null $columns = null)
- * @method static array single(int|string $entity, array $columns)
+ * @method static array single(int|string $entity)
  * @method static ?array update(int|string $entity)
  * @method static int count()
+ * @method static int countByQuery()
+ * @method static int countByStatus(string $status)
+ * @method static int countCurrentMonth()
+ * @method static array statusList()
  */
 class Client extends Relay
 {

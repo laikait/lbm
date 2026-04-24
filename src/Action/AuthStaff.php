@@ -62,19 +62,36 @@ class AuthStaff
         $id = (int) substr(Session::get('id', ''), 12);
         $type = Session::get("type");
 
-        // Database Stored User
-        $user = Auth::user();
+        // Authenticated User
+        $user = $this->user();
 
         // Redirect to Login Page if Not Authenticated
         if (!isset($user['sid']) || ($id < 1) || ((int) $user['sid'] !== $id) || ($type !== ADMIN)) {
             // Destroy Previous Data if Exists
             Auth::destroy();
             // Remove Staff Data if Exists
-            Session::regenerate();
             Session::end();
             return ['status' => false, 'message' => LANG::$unauthenticated];
         }
         return ['status' => true, 'message' => LANG::$authenticated];
+    }
+
+    /**
+     * Authenticated User Info
+     * @return ?array
+     */
+    public function user(): ?array
+    {
+        return Auth::user();
+    }
+
+    /**
+     * Destroy Authentication
+     * @return void
+     */
+    public function destroy(): void
+    {
+        Auth::destroy();
     }
 
     ######################################################################################

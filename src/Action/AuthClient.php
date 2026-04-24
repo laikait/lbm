@@ -40,11 +40,11 @@ class AuthClient
         $id = (int) substr(Session::get('id', ''), 12);
         $type = Session::get("type");
 
-        // Database Stored User
-        $auth_user = Auth::user();
+        // Authenticated User
+        $user = $this->user();
 
         // Return if Already Authenticated
-        if (isset($auth_user['sid']) && ($id > 0) && ($id === (int) $auth_user['sid']) && ($type === PANEL)) {
+        if (isset($user['sid']) && ($id > 0) && ($id === (int) $user['sid']) && ($type === PANEL)) {
             return ['status' => true, 'message' => LANG::$authenticated];
         }
 
@@ -70,11 +70,28 @@ class AuthClient
             // Destroy Previous Data if Exists
             Auth::destroy();
             // Remove Client Data if Exists
-            Session::regenerate();
             Session::end();
             return ['status' => false, 'message' => LANG::$unauthenticated];
         }
         return ['status' => true, 'message' => LANG::$authenticated];
+    }
+
+    /**
+     * Authenticated User Info
+     * @return ?array
+     */
+    public function user(): ?array
+    {
+        return Auth::user();
+    }
+
+    /**
+     * Destroy Authentication
+     * @return void
+     */
+    public function destroy(): void
+    {
+        Auth::destroy();
     }
 
     ######################################################################################

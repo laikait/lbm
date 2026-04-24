@@ -26,8 +26,7 @@ class Initiate
         }
         // Date Default Setup
         Date::setTimezone(do_hook('option', 'time.zone', 'UTC'))
-            ->setFormat(do_hook('option', 'datetime.format', 'Y-m-d H:i:s'))
-            ->init();
+            ->setFormat(do_hook('option', 'datetime.format', 'Y-m-d H:i:s'));
     }
 
     /**

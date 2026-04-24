@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
 use App\Model\ActivityLogModel;
 
 class Activity
@@ -19,10 +18,6 @@ class Activity
     /** @var ActivityLogModel $model */
     protected ActivityLogModel $model;
 
-    /** @var string $timezone */
-    protected string $timezone;
-
-    /** @var string $timeformat */
     protected string $timeformat;
 
     /** @var int $limit */
@@ -31,8 +26,6 @@ class Activity
     public function __construct()
     {
         $this->model = new ActivityLogModel();
-        $this->timezone = do_hook('option', 'time.zone', 'UTC');
-        $this->timeformat = do_hook('option', 'datetime.format', 'Y-M-d H:i:s');
         $this->limit = do_hook('option.int', 'data.limit', 20);
     }
 
