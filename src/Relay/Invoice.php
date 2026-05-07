@@ -13,7 +13,7 @@ use Laika\Core\Relay\Relay;
 
 /**
  * @method static array     latest(?int $limit = null)
- * @method static array     single(int $entity, array $columns)
+ * @method static array     single(int $entity)
  * @method static array     groupByStatus()
  * @method static string    totalSpentByClient(int $client_relid)
  * @method static string    totalOutstandingByClient(int $client_relid)

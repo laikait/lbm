@@ -1,6 +1,6 @@
 <?php
 /**
- * Laika Bill Master
+ * Laika Bill Manager
  * Author: Showket Ahmed
  * Email: riyadhtayf@gmail.com
  * License: MIT
@@ -29,6 +29,9 @@ use App\Model\ClientServiceAddonModel;
 use App\Model\ClientServiceStatusModel;
 use App\Model\ClientServiceConfigValueModel;
 use Laika\Core\Relay\Relays\Date;
+use Laika\Core\Relay\Relays\Vault;
+use Laika\Core\Relay\Relays\Regex;
+use LANG;
 
 class Client
 {
@@ -44,15 +47,52 @@ class Client
     /** @var CountryModel $country_model */
     protected CountryModel $country_model;
 
+    /** @var CurrencyModel $currency_model */
+    protected CurrencyModel $currency_model;
+
     /** @var int $limit */
     protected int $limit;
+
+    /** @var array $columns */
+    protected array $columns;
 
     public function __construct()
     {
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
         $this->note_model = new ClientNoteModel();
+        $this->country_model = new CountryModel();
+        $this->currency_model = new CurrencyModel();
         $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->columns = [
+            // Client Columns
+            "{$this->model->table}.cid",
+            "{$this->model->table}.company_name",
+            "{$this->model->table}.first_name",
+            "{$this->model->table}.middle_name",
+            "{$this->model->table}.last_name",
+            "{$this->model->table}.username",
+            "{$this->model->table}.email",
+            "{$this->model->table}.phone_cc",
+            "{$this->model->table}.phone_number",
+            "{$this->model->table}.street",
+            "{$this->model->table}.city",
+            "{$this->model->table}.state",
+            "{$this->model->table}.postcode",
+            "{$this->model->table}.client_created_at",
+            "{$this->model->table}.client_updated_at",
+            // Country Columns
+            "{$this->country_model->table}.iso2",
+            "{$this->country_model->table}.iso3",
+            "{$this->country_model->table}.country_name",
+            // Status Columns
+            "{$this->status_model->table}.status_name",
+            "{$this->status_model->table}.status_color",
+            // Currency Columns
+            "{$this->currency_model->table}.currency_id",
+            "{$this->currency_model->table}.currency_code",
+            "{$this->currency_model->table}.currency_symbol"
+        ];
     }
 
     ##############################################################################################
@@ -60,28 +100,27 @@ class Client
     ##############################################################################################
     /**
      * Get Clients By Page Number
-     * @param string|array|null $columns Default is null
      * @return array
      */
-    public function limit(string|array|null $columns = null): array
+    public function limit(): array
     {
-        $columns = $columns ?: ['cid', 'company_name', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'phone_cc', 'phone_number', 'status_name', 'status_color', 'client_created_at', 'client_updated_at'];
-
         if (Request::input('search')) {
             $input = Request::input('search');
             $where = [
-                "company_name" => "{$input}%",
-                "first_name" => "{$input}%",
-                "middle_name" => "{$input}%",
-                "last_name" => "{$input}%",
-                "username" => "{$input}%",
-                "email" => "{$input}%",
-                "phone_number" => "{$input}%",
-                "status_name" => "{$input}%"
+                "{$this->model->table}.company_name" => "{$input}%",
+                "{$this->model->table}.first_name" => "{$input}%",
+                "{$this->model->table}.middle_name" => "{$input}%",
+                "{$this->model->table}.last_name" => "{$input}%",
+                "{$this->model->table}.username" => "{$input}%",
+                "{$this->model->table}.email" => "{$input}%",
+                "{$this->model->table}.phone_number" => "{$input}%",
+                "{$this->model->table}.status_name" => "{$input}%"
             ];
             return $this->model
-                ->select($columns)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
+                ->select($this->columns)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                ->join($this->country_model->table, "{$this->model->table}.country_relid", '=', "{$this->country_model->table}.{$this->country_model->id}")
+                ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                 ->where($where, 'LIKE', 'OR')
                 ->offset(Request::input('page', 1))
                 ->order($this->model->id)
@@ -89,8 +128,10 @@ class Client
                 ->get();
         }
         return $this->model
-                ->select($columns)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
+                ->select($this->columns)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                ->join($this->country_model->table, "{$this->model->table}.country_relid", '=', "{$this->country_model->table}.{$this->country_model->id}")
+                ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                 ->where($this->queries(), '=', 'OR')
                 ->offset(Request::input('page', 1))
                 ->order($this->model->id)
@@ -105,38 +146,20 @@ class Client
      */
     public function single(int|string $entity): array
     {
-        // Throw Error If Empty Column(s) Given
-        $columns = ['cid', 'company_name', 'first_name', 'middle_name', 'last_name', 'username', 'email', 'phone_cc', 'phone_number', 'address1', 'address2', 'city', 'state', 'postcode', 'iso2', 'iso3', 'country_name', 'status_name', 'status_color', 'client_created_at', 'client_updated_at', 'currency_id', 'currency_code', 'currency_symbol'];
-
         $where = [
-            'cid'       =>  $entity,
-            'username'  =>  $entity,
-            'email'     =>  $entity,
+            "{$this->model->table}.cid"       =>  $entity,
+            "{$this->model->table}.username"  =>  $entity,
+            "{$this->model->table}.email"     =>  $entity,
         ];
 
-        $country_model = new CountryModel();
-        $currency_model = new CurrencyModel();
         return $this->model
-                    ->select($columns)
-                    ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
-                    ->join($country_model->table, 'country_relid', '=', $country_model->id)
-                    ->join($currency_model->table, 'currency_relid', '=', $currency_model->id)
+                    ->select($this->columns)
+                    ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                    ->join($this->country_model->table, "{$this->model->table}.country_relid", '=', "{$this->country_model->table}.{$this->country_model->id}")
+                    ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                     ->where($where, '=', 'OR')
                     ->first();
     }
-
-    // /**
-    //  * Update Single Client
-    //  * @param int|string $entity Staff Entity. Example: id,username,email
-    //  * @return ?array
-    //  */
-    // public function update(int|string $entity): ?array
-    // {
-    //     if (Request::isPost()) {
-    //         return ['status' => true, 'message' => 'Success'];
-    //     }
-    //     return null;
-    // }
 
     /**
      * Count Staffs
@@ -146,7 +169,6 @@ class Client
     {
         return $this->model
                     ->select($this->model->id)
-                    ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                     ->count();
     }
 
@@ -214,8 +236,131 @@ class Client
      */
     public function statusList(): array
     {
-        $list = (new ClientStatusModel())->get();
+        return $this->status_model->get();
+    }
+
+    /**
+     * Client Statuses List With Color
+     * @return array
+     */
+    public function statusAndColor(): array
+    {
+        $list = $this->status_model->get();
         return array_column($list, 'status_color', 'status_name');
+    }
+
+    /**
+     * Add Client
+     * @return ?array
+     */
+    public function addClient(): ?array
+    {
+        if (!Request::isPost()) {
+            return null;
+        }
+
+        // show(Request::inputs(), true);
+
+        // Validate Form
+        $rules = [
+            'fname'     =>  'required',
+            'lname'     =>  'required',
+            'username'  =>  'required|min:' . do_hook('option.int', 'username.min', 6),
+            'email'     =>  'required|email',
+            'password'  =>  'required|min:' . do_hook('option.int', 'password.min', 6),
+            'cpassword' =>  'required|match:password',
+            'status'    =>  'required|in:'.implode(',',array_column($this->statusList(), 'status_id'))
+        ];
+        $messages = [
+            'fname.required'        =>  LANG::$requiredField,
+            'lname.required'        =>  LANG::$requiredField,
+            'username.required'     =>  LANG::$requiredField,
+            'email.required'        =>  LANG::$requiredField,
+            'password.required'     =>  LANG::$requiredField,
+            'cpassword.required'    =>  LANG::$requiredField,
+            'status.required'       =>  LANG::$requiredField,
+            'username.min'          =>  sprintf(LANG::$minLength, do_hook('option.int', 'username.min', 6)),
+            'email.email'           =>  LANG::$invalidEmail,
+            'password.min'          =>  sprintf(LANG::$minLength, do_hook('option.int', 'password.min', 6)),
+            'cpassword.match'       =>  LANG::$confirmPasswordNotMatchd,
+            'status.in'             =>  LANG::$invalidOption,
+        ];
+
+        // Validate Request
+        Request::validate($rules, $messages);
+
+        // Validate Username Doesn't Exists
+        if ($this->model->select($this->model->id)->where(['username' => Request::input('username', '')])->first()) {
+            Request::addError('username', LANG::$alreadyExists);
+            return ['message' => LANG::$alreadyExists, 'status' => false];
+        }
+
+        // Validate Email Doesn't Exists
+        if ($this->model->select($this->model->id)->where(['email' => Request::input('email', '')])->first()) {
+            Request::addError('username', LANG::$alreadyExists);
+            return ['message' => LANG::$alreadyExists, 'status' => false];
+        }
+
+        // Validate Phone Number
+        if (Request::input('phone_number')) {
+            if (preg_match('/[^0-9\(\)\s\-]+/', Request::input('phone_number'))) {
+                Request::addError('phone_number', LANG::$invalidPhoneNumber);
+                return ['message' => LANG::$generalError, 'status' => false];
+            }
+        }
+
+        // Check Request Error
+        if (!empty(Request::errors())) {
+            return ['message' => LANG::$generalError, 'status' => false];
+        }
+
+        // Insert New Client
+        try {
+            $staff = current_staff();
+            $data = [
+                'company_name'  => (string) Request::input('cname'),
+                'first_name'  => (string) Request::input('fname'),
+                'middle_name'  => (string) Request::input('mname'),
+                'last_name'  => (string) Request::input('lname'),
+                'email'  => (string) Request::input('email'),
+                'username'  => (string) Request::input('username'),
+                'password' => (string) Vault::hashPassword(Request::input('password')),
+                'phone_cc' => (string) Request::input('phone_code'),
+                'phone_number' => (string) Request::input('phone_number'),
+                'street' => (string) Request::input('street'),
+                'city' => (string) Request::input('city'),
+                'state' => (string) Request::input('state'),
+                'postcode' => (string) Request::input('zip'),
+                'country_relid' => (int) Request::input('country'),
+                'currency_relid' => (int) Request::input('currency'),
+                'status_relid' => (int) Request::input('status'),
+            ];
+
+            // // Insert Note
+            // $this->model->insert($data);
+            // // Insert Activity Log
+            // $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID], true) . "\">{$clientID}</a>";
+            // $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']], true) . "\">{$staff['sid']}</a>";
+            // $data = [
+            //     'type'      =>  'staff',
+            //     'id'        =>  $staff['sid'],
+            //     'short'     =>  LANG::$noteAdded,
+            //     'long'      =>  sprintf('A Note Added to Client #%s by Staff %s', $client_href, $staff_href)
+            // ];
+            // $log = Activity::addActivity($data);
+
+            // if (!$log['status']) {
+            //     return ['message' => $log['message'], 'status' => $log['status']];
+            // }
+            return ['message' => LANG::$noteCreateSuccessful, 'status' => true];
+
+        } catch (\Throwable $th) {
+            if (config('env.debug')) {
+                throw new ActionException($th->getMessage());
+            }
+            return ['message' => LANG::$generalError, 'status' => false];
+        }
+        return null;
     }
 
     ##############################################################################################
@@ -227,7 +372,14 @@ class Client
      */
     protected function queries(): array
     {
-        $query_to_column = ['id' => 'cid', 'username' => 'username', 'email' => 'email', 'fname' => 'first_name', 'lname' => 'last_name', 'status' => 'status_name'];
-        return query_to_columns(Request::inputs(), $query_to_column);
+        $query_to_column = [
+            "id" => "{$this->model->table}.cid",
+            "username" => "{$this->model->table}.username",
+            "email" => "{$this->model->table}.email",
+            "fname" => "{$this->model->table}.first_name",
+            "lname" => "{$this->model->table}.last_name",
+            "status" => "{$this->status_model->table}.status_name"
+        ];
+        return query_to_columns($query_to_column);
     }
 }

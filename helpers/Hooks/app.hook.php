@@ -11,107 +11,28 @@
 declare(strict_types=1);
 
 /*============================= OPTION HOOKS =============================*/
-/**
- * Get App DB Option
- * @param string $key DB Option entity
- * @param mixed $default Option Default Value
- * @return string
- */
-add_hook('option', function(string $key, mixed $default = ''){
-    return LBM\Support\Option::get($key, $default);
-}, 1000);
+/** Get App DB Option */
+add_hook('option', 'option', 1000);
 
-/**
- * Get App DB Option as Int
- * @param string $key DB Option entity
- * @return int
- */
-add_hook('option.int', function(string $key, int $default = 0): int{
-    $value = do_hook('option', $key, $default);
-    return preg_match('/^[0-9]+$/i', (string) $value) ? (int) $value : $default;
-}, 1000);
+/** Get App DB Option as Int */
+add_hook('option_int', 'option_int', 1000);
 
-/**
- * Get App DB Option as Bool
- * @param string $key DB Option entity
- * @return bool
- */
-add_hook('option.bool', function(string $key): bool {
-    $value = do_hook('option', $key, 'no');
-    return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : false;
-}, 1000);
+/** Get App DB Option as Bool */
+add_hook('option_bool', 'option_bool', 1000);
 
 /*============================= APP HOOKS =============================*/
-/**
- * Get App Name
- * @return string
- */
-add_hook('app.name', function(){
-    return do_hook('option', 'app.name', 'Laika Bill Manager');
-}, 1000);
+/** Get App Name */
+add_hook('app_name', 'app_name', 1000);
 
-/**
- * App Logo
- * @param ?string $key Option Table lkey column. Example: admin.logo app.logo
- * @return string
- */
-add_hook('app.logo', function(?string $key = null): string {
-    $name = do_hook('option', $key ?: 'app.logo', 'logo.png');
-    return named('app.src', ['name'=>"/img/{$name}"], true);
-}, 1000);
+/** App Logo */
+add_hook('app_logo', 'app_logo', 1000);
 
-/**
- * App Logo
- * @param ?string $key Option Table lkey column. Example: admin.logo app.logo
- * @return string
- */
-add_hook('app.icon', function(?string $key = null): string {
-    $name = do_hook('option', $key ?: 'app.icon', 'icon.png');
-    return named('app.src', ['name'=>"/img/{$name}"], true);
-}, 1000);
-
-// /**
-//  * Panel Info
-//  * Remove Later
-//  */
-// add_hook('panel', function(){
-//     $arr = [
-//         'admin' =>  [
-//             'url'  =>  do_hook('app.host') . ADMIN
-//         ],
-//         'client' =>  [
-//             'url'  =>  do_hook('app.host') . PANEL
-//         ],
-//         'front' =>  [
-//             'url'  =>  do_hook('app.host')
-//         ],
-//     ];
-//     return $arr;
-// }, 1000);
-
-// /**
-//  * Make Log URL
-//  * Remove Later
-//  */
-// add_hook('log.url', function (string $label, string $named, array $param = []) {
-//     return '<a href="' . named($named, $param, true) . '">' . $label . '</a>';
-// }, 1000);
-
-/*============================= MESSAGE HOOKS =============================*/
-// /**
-//  * Create Redirect Message
-//  */
-// add_hook('redirect.message', function (string $userMesssage, string $exceptionMessage) {
-//     return DEBUG ? $exceptionMessage : $userMesssage;
-// });
+/** App Icon */
+add_hook('app_icon', 'app_icon', 1000);
 
 /*========================== TEMPLATE FILTERS ==========================*/
-/**
- * Admin template Name
-*/
-add_hook('admin.template', function(){
-    return 'admin/' . do_hook('option', 'admin.template', 'default');
-}, 1000);
+/** Admin template Name */
+add_hook('admin_template', 'admin_template', 1000);
 
 /*========================== ADMIN FILTERS ==========================*/
 /**
@@ -120,22 +41,9 @@ add_hook('admin.template', function(){
 add_hook('staff_has_access', 'staff_has_access', 1000);
 
 /*=========================== DATE FILTERS ===========================*/
-/**
- * To App Date Format
- * @param string $time
- * @return string
- */
-add_hook('date.format', function (string $time): string {
-    return Laika\Core\Relay\Relays\Date::parse($time)->format();
-});
+/** To App Date Format */
+add_hook('date_format', 'date_format', 1000);
 
 /*=========================== AMOUNT FILTERS ===========================*/
-/**
- * Decimal Format
- * @param string $symbol
- * @param string|float $amount
- * @return string
- */
-add_hook('decimal', function (string $symbol, string|float $amount): string {
-    return $symbol . number_format((float) $amount, 2, do_hook('option', 'decimal.symbol', '.'), do_hook('option', 'thousand.separator', ','));
-});
+/** Decimal Format */
+add_hook('decimal', 'decimal', 1000);

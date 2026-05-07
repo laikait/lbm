@@ -11,10 +11,14 @@ declare(strict_types=1);
 
 namespace LBM\Support;
 
-use Laika\Model\Connection;
-use Laika\Core\Relay\Relays\Local;
-use Laika\Core\Relay\Relays\Date;
+use Laika\Core\Service\Redirect;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Local;
+use Laika\Core\Service\Date;
+use Laika\Core\Service\Csrf;
 use Laika\Session\Relay\Session;
+use Laika\Model\Connection;
+use LANG;
 
 class Initiate
 {
@@ -22,11 +26,14 @@ class Initiate
     {
         if (!Connection::has()) {
             // Initiate Database
-            Connection::add(do_hook('config.database', 'default'));
+            Connection::add(config('database', 'default'));
         }
-        // Date Default Setup
-        Date::setTimezone(do_hook('option', 'time.zone', 'UTC'))
-            ->setFormat(do_hook('option', 'datetime.format', 'Y-m-d H:i:s'));
+        // Default Timezone & Format
+        Date::setFormat(apply_hook('option', 'datetime.format', 'Y-m-d H:i:s'))
+            ->setAppTimezone(apply_hook('option', 'time.zone', 'UTC'));
+
+        // Apply Database Session Timezone
+        Connection::applyTimezone(Date::getOffset());
     }
 
     /**
@@ -37,20 +44,20 @@ class Initiate
     public function common(?string $type = null): void
     {
         // Initiate Session
-        $dbsession = do_hook('option.bool', 'dbsession');
+        $dbsession = apply_hook('option.bool', 'dbsession');
         $dbsession ? Session::config(Connection::get()) : Session::config();
         Session::for($type);
 
         // Initiate Local
         switch (strtolower((string) $type)) {
             case strtolower(ADMIN):
-                Local::set(do_hook('option', 'admin.local', 'en'));
+                Local::set(apply_hook('option', 'admin.local', 'en'));
                 Local::setPath('admin');
                 Local::load();
                 break;
 
             case strtolower(PANEL):
-                Local::set(do_hook('option', 'panel.local', 'en'));
+                Local::set(apply_hook('option', 'panel.local', 'en'));
                 Local::setPath('panel');
                 Local::load();
                 break;
@@ -58,6 +65,11 @@ class Initiate
             default:
                 Local::load();
                 break;
+        }
+
+        // Validate CSRF
+        if(Request::isPost() && !Csrf::is_valid()) {
+            Redirect::with(LANG::$invalidCsrf, false)->back();
         }
     }
 }

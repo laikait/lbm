@@ -12,7 +12,7 @@ namespace LBM\Relay;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array limit(string|array|null $columns = null)
+ * @method static array limit()
  * @method static array single(int|string $entity)
  * @method static ?array update(int|string $entity)
  * @method static int count()
@@ -20,6 +20,8 @@ use Laika\Core\Relay\Relay;
  * @method static int countByStatus(string $status)
  * @method static int countCurrentMonth()
  * @method static array statusList()
+ * @method static array statusAndColor()
+ * @method static ?array addClient()
  */
 class Client extends Relay
 {

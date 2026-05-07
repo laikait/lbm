@@ -8,64 +8,70 @@
 ##########################################################################
 /*----------------------------- LBM ROUTES -----------------------------*/
 ##########################################################################
-use Laika\Core\App\Router;
+use Laika\Core\App\Http;
 use App\Middleware\Admin\Init; // Use It In 1st Middleware Each Admin Routes Without Login Pages
 use App\Middleware\Admin\Login; // Only For Login Page
-use App\Middleware\Admin\Client;
-
-// Admin Panel Fallback
-Router::fallback(ADMIN, null, Init::class);
+use App\Middleware\Admin\ClientMiddleware;
 
 // Admin Login Routes
-Router::group(ADMIN, function(){
-    Router::get('/login', 'Admin\AuthController@login')->name('staff.login'); // Done
-    Router::post('/login', 'Admin\AuthController@login');
-}, [Login::class]);
+Http::group(ADMIN, function(){
+
+    Http::get('/login', 'Admin\AuthController@login')->name('staff.login'); // Done
+    Http::post('/login', 'Admin\AuthController@login');
+
+})->middleware([Login::class]);
 
 
 // Admin Route Group
-Router::group(ADMIN, function(){
+Http::group(ADMIN, function(){
+    // Fallback
+    Http::fallback(null);
+
     // Dashboard, Login & Logout
-    Router::get('/', 'Admin\DashboardController@index')->name('staff.dashboard'); // Almost Done
-    Router::get('/logout', 'Admin\AuthController@logout')->name('staff.logout'); // Done
+    Http::get('/', 'Admin\DashboardController@index')->name('staff.dashboard'); // Almost Done
+    Http::get('/logout', 'Admin\AuthController@logout')->name('staff.logout'); // Done
 
     // Clients
-    Router::get('/clients', 'Admin\ClientController@clients')->name('staff.clients');
+    Http::get('/clients', 'Admin\ClientController@clients')->name('staff.clients');
     // Single Client
-    Router::get('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\ClientController@single')->name('staff.client');
-    Router::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\ClientController@single')->middleware([Client::class]);
+    Http::get('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\ClientController@single')->name('staff.client');
+    Http::post('/client/{client:[a-zA-Z0-9\-]+}', 'Admin\ClientController@single')->middleware([ClientMiddleware::class]);
 
     // Ticket
-    Router::get('/tickets', function(){})->name('staff.tickets');
-    Router::get('/ticket/{uid:[a-zA-Z0-9\-]+}', function(){})->name('staff.ticket');
+    Http::get('/tickets', function(){})->name('staff.tickets');
+    Http::get('/ticket/{ticket:[a-zA-Z0-9\-]+}', function(){})->name('staff.ticket');
     
     // Order
-    Router::get('/orders', function(){})->name('staff.orders');
-    Router::get('/order/{uid:[a-zA-Z0-9\-]+}', function(){})->name('staff.order');
+    Http::get('/orders', function(){})->name('staff.orders');
+    Http::get('/order/{order:[a-zA-Z0-9\-]+}', function(){})->name('staff.order');
 
     // Staffs
-    Router::get('/staffs', function(){})->name('staff.staffs');
-    Router::get('/staff/{staff:[a-zA-Z0-9\-]+}', function(){})->name('staff.staff');
-    Router::get('/staff-activities', function(){})->name('staff.activities');
+    Http::get('/staffs', function(){})->name('staff.staffs');
+    Http::get('/staff/{staff:[a-zA-Z0-9\-]+}', function(){})->name('staff.staff');
+    Http::get('/staff-activities', function(){})->name('staff.activities');
 
     // Invoices
-    Router::get('/invoices', function(){})->name('staff.invoices');
-    Router::get('/invoice/{invoice:[a-zA-Z0-9\-]+}', function(){})->name('staff.invoice');
+    Http::get('/invoices', function(){})->name('staff.invoices');
+    Http::get('/invoice/{invoice:[a-zA-Z0-9\-]+}', function(){})->name('staff.invoice');
 
     // Others
-    Router::get('/my-account', function(){})->name('staff.account');
-    Router::get('/settings', function(){})->name('settings');
+    Http::get('/my-account', function(){})->name('staff.account');
+    Http::get('/settings', function(){})->name('settings');
 
-},[Init::class]);
+    // Admin Add Route Group
+    Http::group('/add', function(){
+        // Add Client
+        Http::get('client', 'Admin\ClientController@create')->name('staff.add.client');
+        Http::post('client', 'Admin\ClientController@create')->middleware([ClientMiddleware::class]);
 
-// Admin Add Route Group
-Router::group(ADMIN . '/add', function(){
-    // Add Client
-    Router::get('client', 'Admin\ClientController@create')->name('staff.add.client');
-    Router::post('client', 'Admin\ClientController@create')->middleware([Client::class]);
+        // Add Invoice
+        Http::get('invoice', 'Admin\InvoiceController@create')
+            ->middleware('Admin\Invoice')
+            ->name('staff.add.invoice');
 
-    // Add Invoice
-    Router::get('invoice', 'Admin\InvoiceController@create')->middleware('Admin\Invoice')->name('staff.add.invoice');
-    Router::post('invoice', 'Admin\InvoiceController@create')->middleware('Admin\Invoice');
+        Http::post('invoice', 'Admin\InvoiceController@create')
+            ->middleware('Admin\Invoice');
 
-},[Init::class]);
+    });
+
+})->middleware([Init::class]);

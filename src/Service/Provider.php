@@ -16,9 +16,11 @@ use LBM\Action\AuthClient;
 use LBM\Action\Client;
 use LBM\Action\ClientContact;
 use LBM\Action\Invoice;
+use LBM\Action\Order;
 use LBM\Action\Staff;
 use LBM\Action\Support;
 use LBM\Action\Country;
+use LBM\Action\ClientNote;
 use LBM\Support\Initiate;
 
 class Provider extends RelayProvider
@@ -35,5 +37,7 @@ class Provider extends RelayProvider
         $this->registry->singleton('action.staff', Staff::class);
         $this->registry->singleton('action.support', Support::class);
         $this->registry->singleton('action.country', Country::class);
+        $this->registry->singleton('action.client.note', ClientNote::class);
+        $this->registry->singleton('action.order', Order::class);
     } 
 }

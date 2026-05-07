@@ -13,19 +13,10 @@
 declare(strict_types=1);
 
 // Require All Functions File
-array_map(function($file)
-{
-    require_once $file;
-}, glob(__DIR__ . '/Functions/*.func.php'));
+foreach (glob(__DIR__ . '/Functions/*.func.php') as $func_file) require_once $func_file;
 
 // Require All Hooks File
-array_map(function($file)
-{
-    require_once $file;
-}, glob(__DIR__ . '/Hooks/*.hook.php'));
+foreach (glob(__DIR__ . '/Hooks/*.hook.php') as $hook_file) require_once $hook_file;
 
 // Require All Routes
-array_map(function($file)
-{
-    require_once $file;
-}, glob(__DIR__ . '/Routes/*.route.php'));
+foreach (glob(__DIR__ . '/Routes/*.route.php') as $route_file) require_once $route_file;

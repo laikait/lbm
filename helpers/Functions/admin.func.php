@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 use LBM\Relay\AuthStaff;
+use Laika\Core\Service\Request;
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -42,15 +43,14 @@ function staff_has_access(string $access): bool
 
 /**
  * Match Database Columns with Queries
- * @param array{string:mixed} $inputs Inputs From Request
- * @param array{string:string} $keyValuePair [query_key => db_column...]. Example: ['id' => 'note_id']
+ * @param array<string:string> $keyValuePair [query_key => db_column...]. Example: ['id' => 'note_id']
  * @return array
  */
-function query_to_columns(array $inputs, array $keyValuePair): array
+function query_to_columns(array $keyValuePair): array
 {
     $keys = [];
     // Get Accepted Query Values
-    foreach($inputs as $k => $v) {
+    foreach(Request::inputs() as $k => $v) {
         if (!$v) {
             continue;
         }

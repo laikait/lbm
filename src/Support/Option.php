@@ -44,7 +44,7 @@ class Option
         $default = $default ? 'yes' : 'no';
 
         // Check Option Name Doesn't Exists
-        if (empty($model->first(['key' => $key]))) {
+        if (empty($model->where(['key' => $key])->first())) {
             return (bool) $model->insert([
                 'key' => $key,
                 'value' => $value,
@@ -53,6 +53,6 @@ class Option
         }
 
         // Update Value
-        return (bool) $model->update(['key' => $key], ['value' => $value]);
+        return (bool) $model->where(['key' => $key])->update(['value' => $value]);
     }
 }

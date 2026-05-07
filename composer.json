@@ -4,12 +4,12 @@
     "type": "library",
     "license": "MIT",
     "autoload": {
-        "psr-4": {
-            "LBM\\": "src/"
-        },
         "files": [
             "helpers/loader.php"
-        ]
+        ],
+        "psr-4": {
+            "LBM\\": "src/"
+        }
     },
     "authors": [
         {

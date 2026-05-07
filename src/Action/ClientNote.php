@@ -1,0 +1,195 @@
+<?php
+/**
+ * Laika Bill Manager
+ * Author: Showket Ahmed
+ * Email: riyadhtayf@gmail.com
+ * License: MIT
+ * This Project Don't Provide Any Permission to Use it In Any Other Webapplication
+ */
+
+declare(strict_types=1);
+
+namespace LBM\Action;
+
+use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Relay\Relays\Csrf;
+use App\Model\ClientNoteModel;
+use App\Model\ClientModel;
+use App\Model\StaffModel;
+use LBM\Exception\ActionException;
+use LBM\Relay\Activity;
+use LANG;
+
+class ClientNote
+{
+    /** @var ClientNoteModel $model */
+    protected ClientNoteModel $model;
+
+    /** @var ClientModel $cmodel */
+    protected ClientModel $cmodel;
+
+    /** @var StaffModel $smodel */
+    protected StaffModel $smodel;
+
+    /** @var int $limit */
+    protected int $limit;
+
+    /** @var array $columns */
+    protected array $columns;
+
+    public function __construct()
+    {
+        $this->model = new ClientNoteModel();
+        $this->smodel = new StaffModel();
+        $this->cmodel = new ClientModel();
+        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->columns = [
+            // Note Columns
+            "{$this->model->table}.note_id",
+            "{$this->model->table}.note",
+            "{$this->model->table}.note_created_at",
+            // Client Columns
+            "{$this->cmodel->table}.cid",
+            "{$this->cmodel->table}.first_name as client_first_name",
+            "{$this->cmodel->table}.last_name as client_last_name",
+            "{$this->cmodel->table}.username as client_username",
+            // Staff Columns
+            "{$this->smodel->table}.sid",
+            "{$this->smodel->table}.first_name as staff_first_name",
+            "{$this->smodel->table}.last_name as staff_last_name",
+            "{$this->smodel->table}.username as staff_username"
+
+        ];
+    }
+
+    /**
+     * Get Note By ID
+     * @param int $id
+     * @return array
+     */
+    public function getById(int $id): array
+    {
+        return $this->model
+                    ->select($this->columns)
+                    ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
+                    ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
+                    ->where(['id' => $id])
+                    ->first();
+    }
+
+    /**
+     * Get Notes By Clien ID
+     * @param int $relid
+     * @param string $orderBy
+     * @return array
+     */
+    public function getByClientId(int $relid, string $orderBy = 'ASC'): array
+    {
+        return $this->model
+                    ->select($this->columns)
+                    ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
+                    ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
+                    ->where(['client_relid' => $relid])
+                    ->order($this->model->id, $orderBy)
+                    ->get();
+    }
+
+    /**
+     * Get Notes By Staff ID
+     * @param int $relid
+     * @param string $orderBy
+     * @return array
+     */
+    public function getByStaffId(int $relid, string $orderBy = 'ASC'): array
+    {
+        return $this->model
+                    ->select($this->columns)
+                    ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
+                    ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
+                    ->where(['staff_relid' => $relid])
+                    ->order($this->model->id, $orderBy)
+                    ->get();
+    }
+
+    /**
+     * Get Latest
+     * @param ?int $limit
+     * @return array
+     */
+    public function latest(?int $limit = null): array
+    {
+        return $this->model
+                    ->select($this->columns)
+                    ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
+                    ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
+                    ->order($this->model->id, 'DESC')
+                    ->limit($limit ?: $this->limit)
+                    ->get();
+    }
+
+    /**
+     * Add Note
+     * @param int|string $clientID
+     * @return ?array
+     */
+    public function addNote(int|string $clientID): ?array
+    {
+        if (!Request::isPost()) {
+            return null;
+        }
+
+        // Validate Client ID
+        if (!Request::input('cid') || (Request::input('cid') != $clientID)) {
+            return ['message' => LANG::$invalidRequest, 'status' => false];
+        }
+
+        // Validate Form
+        $rules = [
+            'note' => 'required|max:1000'
+        ];
+        $messages = [
+            'note.required' => LANG::$requiredField,
+            'note.max' => sprintf(LANG::$maxCharLimit, 1000)
+        ];
+
+        Request::validate($rules, $messages);
+        if (!empty(Request::errors())) {
+            return ['message' => LANG::$generalError, 'status' => false];
+        }
+
+        // Insert Note & Log
+        try {
+            $staff = current_staff();
+            $data = [
+                'client_relid' => $clientID,
+                'staff_relid' => $staff['sid'],
+                'note' => Request::input('note')
+            ];
+
+            // Insert Note
+            $this->model->insert($data);
+            // Insert Activity Log
+            $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID], true) . "\">{$clientID}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']], true) . "\">{$staff['sid']}</a>";
+            $data = [
+                'type'      =>  'staff',
+                'id'        =>  $staff['sid'],
+                'short'     =>  LANG::$noteAdded,
+                'long'      =>  sprintf('A Note Added to Client #%s by Staff %s', $client_href, $staff_href)
+            ];
+            $log = Activity::addActivity($data);
+
+            if (!$log['status']) {
+                return ['message' => $log['message'], 'status' => $log['status']];
+            }
+            return ['message' => LANG::$noteCreateSuccessful, 'status' => true];
+
+        } catch (\Throwable $th) {
+            if (config('env.debug')) {
+                throw new ActionException($th->getMessage());
+            }
+            return ['message' => LANG::$generalError, 'status' => false];
+        }
+        return null;
+    }
+}

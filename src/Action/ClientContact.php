@@ -1,6 +1,6 @@
 <?php
 /**
- * Laika Bill Master
+ * Laika Bill Manager
  * Author: Showket Ahmed
  * Email: riyadhtayf@gmail.com
  * License: MIT

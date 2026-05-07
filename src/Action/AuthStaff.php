@@ -1,6 +1,6 @@
 <?php
 /**
- * Laika Bill Master
+ * Laika Bill Manager
  * Author: Showket Ahmed
  * Email: riyadhtayf@gmail.com
  * License: MIT
@@ -11,11 +11,12 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Auth;
-use Laika\Session\Relay\Session;
+use Laika\Core\Relay\Relays\Redirect;
 use Laika\Core\Relay\Relays\Request;
 use Laika\Core\Relay\Relays\Visitor;
-use Laika\Core\Relay\Relays\Csrf;
+use LBM\Exception\ActionException;
+use Laika\Core\Relay\Relays\Auth;
+use Laika\Session\Relay\Session;
 use App\Model\LoginLogModel;
 use LANG;
 
@@ -32,9 +33,9 @@ class AuthStaff
     ######################################################################################
     /**
      * Staff Login
-     * @return ?array
+     * @return void
      */
-    public function login(): ?array
+    public function login(): void
     {
         // Check Valid User Data Stored in Session & Database
         $id = (int) substr(Session::get("id", ''), 12);
@@ -45,18 +46,18 @@ class AuthStaff
 
         // Return if Already Authenticated
         if (isset($auth_user['sid']) && ($id > 0) && ($id === (int) $auth_user['sid']) && ($type === ADMIN)) {
-            return ['status' => true, 'message' => LANG::$authenticated];
+            Redirect::with(LANG::$authenticated, true)->to('staff.dashboard');
         }
 
         // Process Login
-        return Request::isPost() ? $this->process() : null;
+        if (Request::isPost()) $this->process();
     }
 
     /**
      * Validate Staff Login
-     * @return array
+     * @return void
      */
-    public function validate(): array
+    public function validate(): void
     {
         // Get Authenticated ID
         $id = (int) substr(Session::get('id', ''), 12);
@@ -71,9 +72,8 @@ class AuthStaff
             Auth::destroy();
             // Remove Staff Data if Exists
             Session::end();
-            return ['status' => false, 'message' => LANG::$unauthenticated];
+            Redirect::with(LANG::$unauthenticated, false)->to('staff.login');
         }
-        return ['status' => true, 'message' => LANG::$authenticated];
     }
 
     /**
@@ -99,15 +99,10 @@ class AuthStaff
     ######################################################################################
     /**
      * Process Staff Login
-     * @return ?array
+     * @return void
      */
-    protected function process(): ?array
+    protected function process(): void
     {
-        // Validate CSRF
-        if (!Csrf::is_valid()) {
-            return ['status' => false, 'message' => LANG::$invalidCsrf];
-        }
-
         // Get Staff
         $input = Request::input('user');
 
@@ -118,7 +113,8 @@ class AuthStaff
 
         // Check Staff Exists & Active
         if (empty($staff) || ($staff['status_name'] != 'active')) {
-            return ['status' => false, 'message' => LANG::$invalidUser];
+            do_hook('alert.set', LANG::$invalidUser, false);
+            return;
         }
 
         // Check Password is Valid
@@ -126,7 +122,8 @@ class AuthStaff
 
         // Check Password is Valid
         if (!password_verify(Request::input('password'), $password)) {
-            return ['status' => false, 'message' => LANG::$invalidUser];
+            do_hook('alert.set', LANG::$invalidUser, false);
+            return;
         }
 
         // Unset Password
@@ -146,12 +143,15 @@ class AuthStaff
             // Set Auth Session ID & Type
             Session::set(["id" => bin2hex(random_bytes(6)) . $staff['sid'], 'type' => ADMIN]);
         } catch (\Throwable $th) {
-            $message = do_hook('redirect.message', LANG::$generalError, $th->getMessage());
-            return ['status' => false, 'message' => $message];
+            if (config('env', 'debug')) {
+                throw new ActionException($th->getMessage(), (int) $th->getCode(), $th);
+            }
+            do_hook('alert.set', LANG::$generalError, false);
+            return;
         }
 
         // Redirect to Dashboard
-        return ['status' => true, 'message' => sprintf(LANG::$welcome, $staff['first_name'])];
+        Redirect::with(LANG::$welcome, true)->to('staff.dashboard');
     }
 
     /**

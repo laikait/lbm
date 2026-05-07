@@ -12,8 +12,11 @@ namespace LBM\Relay;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array single(int $id, array $columns)
+ * @method static array single(int $id)
  * @method static array latest(?int $limit = null)
+ * @method static array byType(string $type)
+ * @method static array byTypeAndId(string $type, ?int $id = null)
+ * @method static bool addActivity(array $data)
  */
 class Activity extends Relay
 {

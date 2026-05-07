@@ -12,8 +12,8 @@ namespace LBM\Relay;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static ?array login()
- * @method static ?array validate()
+ * @method static void login()
+ * @method static void validate()
  * @method static ?array user()
  * @method static void destroy()
  */
