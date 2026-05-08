@@ -58,7 +58,7 @@ function decimal(string $symbol, string|float $amount): string {
  * @param string $time
  * @return string
  */
-function date_format(string $time): string {
+function dateFormat(string $time): string {
     return Date::parse($time)->format();
 };
 
