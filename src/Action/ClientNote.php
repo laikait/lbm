@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
-use Laika\Core\Relay\Relays\Csrf;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Csrf;
 use App\Model\ClientNoteModel;
 use App\Model\ClientModel;
 use App\Model\StaffModel;
@@ -42,7 +42,7 @@ class ClientNote
         $this->model = new ClientNoteModel();
         $this->smodel = new StaffModel();
         $this->cmodel = new ClientModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
         $this->columns = [
             // Note Columns
             "{$this->model->table}.note_id",

@@ -44,20 +44,20 @@ class Initiate
     public function common(?string $type = null): void
     {
         // Initiate Session
-        $dbsession = apply_hook('option.bool', 'dbsession');
+        $dbsession = option_bool('dbsession');
         $dbsession ? Session::config(Connection::get()) : Session::config();
         Session::for($type);
 
         // Initiate Local
         switch (strtolower((string) $type)) {
             case strtolower(ADMIN):
-                Local::set(apply_hook('option', 'admin.local', 'en'));
+                Local::set(option('admin.local', 'en'));
                 Local::setPath('admin');
                 Local::load();
                 break;
 
             case strtolower(PANEL):
-                Local::set(apply_hook('option', 'panel.local', 'en'));
+                Local::set(option('panel.local', 'en'));
                 Local::setPath('panel');
                 Local::load();
                 break;

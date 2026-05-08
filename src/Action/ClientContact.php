@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Service\Request;
 use App\Model\ClientModel;
 use LBM\Exception\ActionException;
 use App\Model\ClientNoteModel;
@@ -44,7 +44,7 @@ class ClientContact
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
         $this->note_model = new ClientNoteModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**

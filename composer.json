@@ -27,6 +27,12 @@
         "laika": {
             "providers": [
                 "LBM\\Service\\Provider"
+            ],
+            "functions": [
+                "helpers/functions"
+            ],
+            "hooks": [
+                "helpers/hooks"
             ]
         }
     }

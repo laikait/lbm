@@ -11,11 +11,12 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Auth;
+use Laika\Core\Service\Auth;
 use Laika\Session\Relay\Session;
-use Laika\Core\Relay\Relays\Request;
-use Laika\Core\Relay\Relays\Visitor;
-use Laika\Core\Relay\Relays\Csrf;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Redirect;
+use Laika\Core\Service\Visitor;
+use Laika\Core\Service\Csrf;
 use App\Model\LoginLogModel;
 use LANG;
 
@@ -103,59 +104,55 @@ class AuthClient
      */
     protected function process(): ?array
     {
-        // Validate CSRF
-        if (!Csrf::is_valid()) {
-            return ['status' => false, 'message' => LANG::$invalidCsrf];
-        }
-
-        // Get Client
+        // Get Staff
         $input = Request::input('user');
 
-        // Client Columns To Get
-        // EDIT LATER.
-        // THIS METHOD NOT COMPLETED YET
-        //##############################################################################################//
-        $columns = ['cid', 'password', 'first_name', 'last_name', 'username', 'email', 'status_name'];
+        // Staff Columns To Get
+        $columns = ['sid', 'password', 'role_name', 'permissions', 'first_name', 'last_name', 'username', 'email', 'status_name'];
 
-        $client = (new Client())->single($input, $columns);
+        $staff = (new Staff())->single($input, $columns);
 
-        // Check Client Exists & Active
-        if (empty($client) || ($client['status_name'] != 'active')) {
-            return ['status' => false, 'message' => LANG::$invalidUser];
+        // Check Staff Exists & Active
+        if (empty($staff) || ($staff['status_name'] != 'active')) {
+            alert_set(LANG::$invalidUser, false);
+            return;
         }
 
         // Check Password is Valid
-        $password = $client['password'];
+        $password = $staff['password'];
 
         // Check Password is Valid
         if (!password_verify(Request::input('password'), $password)) {
-            return ['status' => false, 'message' => LANG::$invalidUser];
+            alert_set(LANG::$invalidUser, false);
+            return;
         }
 
         // Unset Password
-        unset($client['password']);
+        unset($staff['password']);
 
         try {
             // Set Auth User Data
-            Auth::create($client);
+            Auth::create($staff);
             // Log Login
             $logs = [
-                'type' => 'client',
-                'relid' => $client['cid'],
+                'type' => 'staff',
+                'relid' => $staff['sid'],
                 'ip_address' => Visitor::ip(),
                 'user_agent' => Visitor::userAgent(),
             ];
             $this->createLog($logs);
-            // Set Session ID & Type
-            Session::set(["id" => bin2hex(random_bytes(6)) . $client['cid'], 'type' => PANEL]);
+            // Set Auth Session ID & Type
+            Session::set(["id" => bin2hex(random_bytes(6)) . $staff['sid'], 'type' => ADMIN]);
         } catch (\Throwable $th) {
-            $message = do_hook('redirect.message', LANG::$generalError, $th->getMessage());
-            return ['status' => false, 'message' => $message];
+            if (config('env', 'debug')) {
+                throw new ActionException($th->getMessage(), (int) $th->getCode(), $th);
+            }
+            alert_set(LANG::$generalError, false);
+            return;
         }
-        // Set Auth Session
 
         // Redirect to Dashboard
-        return ['status' => true, 'message' => sprintf(LANG::$welcome, $client['first_name'])];
+        Redirect::with(LANG::$welcome, true)->to('staff.dashboard');
     }
 
     /**
@@ -169,8 +166,7 @@ class AuthClient
             try {
                 $m->insert($logs);
             } catch (\Throwable $th) {
-                $message = do_hook('redirect.message', LANG::$logCreateFailed, $th->getMessage());
-                return ['status' => false, 'message' => $message];
+                return ['status' => false, 'message' => LANG::$logCreateFailed];
             }
             return ['status' => true, 'message' => LANG::$logInSuccessful];
         });

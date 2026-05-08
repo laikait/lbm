@@ -28,7 +28,7 @@ class AddressFactory extends Factory
     {
         $this->model = new Address();
         $this->page = (int) \call_user_func([new Request, 'input'], 'page', 1);
-        $this->limit = \do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
         $this->acceptedQueries = [];
     }
 

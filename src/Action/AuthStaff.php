@@ -11,11 +11,11 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Redirect;
-use Laika\Core\Relay\Relays\Request;
-use Laika\Core\Relay\Relays\Visitor;
+use Laika\Core\Service\Redirect;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Visitor;
 use LBM\Exception\ActionException;
-use Laika\Core\Relay\Relays\Auth;
+use Laika\Core\Service\Auth;
 use Laika\Session\Relay\Session;
 use App\Model\LoginLogModel;
 use LANG;
@@ -113,7 +113,7 @@ class AuthStaff
 
         // Check Staff Exists & Active
         if (empty($staff) || ($staff['status_name'] != 'active')) {
-            do_hook('alert.set', LANG::$invalidUser, false);
+            alert_set(LANG::$invalidUser, false);
             return;
         }
 
@@ -122,7 +122,7 @@ class AuthStaff
 
         // Check Password is Valid
         if (!password_verify(Request::input('password'), $password)) {
-            do_hook('alert.set', LANG::$invalidUser, false);
+            alert_set(LANG::$invalidUser, false);
             return;
         }
 
@@ -146,7 +146,7 @@ class AuthStaff
             if (config('env', 'debug')) {
                 throw new ActionException($th->getMessage(), (int) $th->getCode(), $th);
             }
-            do_hook('alert.set', LANG::$generalError, false);
+            alert_set(LANG::$generalError, false);
             return;
         }
 
@@ -165,8 +165,7 @@ class AuthStaff
             try {
                 $m->insert($logs);
             } catch (\Throwable $th) {
-                $message = do_hook('redirect.message', LANG::$logCreateFailed, $th->getMessage());
-                return ['status' => false, 'message' => $message];
+                return ['status' => false, 'message' => LANG::$logCreateFailed];
             }
             return ['status' => true, 'message' => LANG::$logInSuccessful];
         });

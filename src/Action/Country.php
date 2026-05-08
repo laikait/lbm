@@ -24,7 +24,7 @@ class Country
     public function __construct()
     {
         $this->model = new CountryModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**

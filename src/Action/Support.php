@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Service\Request;
 use App\Model\StaffModel;
 use App\Model\ClientModel;
 use App\Model\SupportTicketModel;
@@ -66,7 +66,7 @@ class Support
         $this->reply_model = new SupportTicketReplyModel();
         $this->can_model = new SupportCannedResponseModel();
         $this->prio_model = new SupportTicketPriorityModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**

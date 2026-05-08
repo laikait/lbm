@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Service\Request;
 use App\Model\ClientModel;
 use LBM\Exception\ActionException;
 use App\Model\ClientNoteModel;
@@ -28,9 +28,9 @@ use App\Model\ClientServiceNoteModel;
 use App\Model\ClientServiceAddonModel;
 use App\Model\ClientServiceStatusModel;
 use App\Model\ClientServiceConfigValueModel;
-use Laika\Core\Relay\Relays\Date;
-use Laika\Core\Relay\Relays\Vault;
-use Laika\Core\Relay\Relays\Regex;
+use Laika\Core\Service\Date;
+use Laika\Core\Service\Vault;
+use Laika\Core\Service\Regex;
 use LANG;
 
 class Client
@@ -63,7 +63,7 @@ class Client
         $this->note_model = new ClientNoteModel();
         $this->country_model = new CountryModel();
         $this->currency_model = new CurrencyModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
         $this->columns = [
             // Client Columns
             "{$this->model->table}.cid",
@@ -265,9 +265,9 @@ class Client
         $rules = [
             'fname'     =>  'required',
             'lname'     =>  'required',
-            'username'  =>  'required|min:' . do_hook('option.int', 'username.min', 6),
+            'username'  =>  'required|min:' . option_int('username.min', 6),
             'email'     =>  'required|email',
-            'password'  =>  'required|min:' . do_hook('option.int', 'password.min', 6),
+            'password'  =>  'required|min:' . option_int('password.min', 6),
             'cpassword' =>  'required|match:password',
             'status'    =>  'required|in:'.implode(',',array_column($this->statusList(), 'status_id'))
         ];
@@ -279,9 +279,9 @@ class Client
             'password.required'     =>  LANG::$requiredField,
             'cpassword.required'    =>  LANG::$requiredField,
             'status.required'       =>  LANG::$requiredField,
-            'username.min'          =>  sprintf(LANG::$minLength, do_hook('option.int', 'username.min', 6)),
+            'username.min'          =>  sprintf(LANG::$minLength, option_int('username.min', 6)),
             'email.email'           =>  LANG::$invalidEmail,
-            'password.min'          =>  sprintf(LANG::$minLength, do_hook('option.int', 'password.min', 6)),
+            'password.min'          =>  sprintf(LANG::$minLength, option_int('password.min', 6)),
             'cpassword.match'       =>  LANG::$confirmPasswordNotMatchd,
             'status.in'             =>  LANG::$invalidOption,
         ];

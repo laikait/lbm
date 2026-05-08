@@ -13,6 +13,7 @@ namespace LBM\Action;
 
 use App\Model\ActivityLogModel;
 use Laika\Core\Relay\Relays\Visitor;
+use InvalidArgumentException;
 use LANG;
 
 class Activity
@@ -26,7 +27,7 @@ class Activity
     public function __construct()
     {
         $this->model = new ActivityLogModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**
@@ -74,22 +75,22 @@ class Activity
      * Insert Activity
       * @param array{type: string,id?: int,short: string,long: string,changes?: array<string, array{old: mixed, new:mixed}>} $data
       * @return array{message: string, status: bool}
-      * @throws \InvalidArgumentException
+      * @throws InvalidArgumentException
      */
     public function addActivity(array $data): array
     {
         if (empty($data['type']) || empty($data['short']) || empty($data['long'])) {
-            throw new \InvalidArgumentException('Activity Type, Short Description and Long Description are required! Keys: type, short, long');
+            throw new InvalidArgumentException('Activity Type, Short Description and Long Description are required! Keys: type, short, long');
         }
 
         if (!in_array(strtolower($data['type']), ['client', 'staff', 'system'])) {
-            throw new \InvalidArgumentException('Invalid Activity Type! Accepted Values: client, staff, system');
+            throw new InvalidArgumentException('Invalid Activity Type! Accepted Values: client, staff, system');
         }
 
         // Prepare Data
         $type = strtolower($data['type']);
         if ($type !== 'system' && empty($data['id'])) {
-            throw new \InvalidArgumentException('Creator ID is required for Client and Staff Activities! Key: id');
+            throw new InvalidArgumentException('Creator ID is required for Client and Staff Activities! Key: id');
         }
 
         try {

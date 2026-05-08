@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-use Laika\Core\Relay\Relays\Nav;
+use Laika\Core\Service\Nav;
 
 /*=============================== NAVBAR ===============================*/
 // Add Admin Nav Header Filter

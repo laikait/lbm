@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Service\Request;
 use App\Model\ClientModel;
 use App\Model\InvoiceModel;
 use App\Model\CurrencyModel;
@@ -43,7 +43,7 @@ class Invoice
         $this->currency_model = new CurrencyModel();
         $this->client_model = new ClientModel();
         $this->status_model = new InvoiceStatusModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**

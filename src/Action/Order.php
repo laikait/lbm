@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
-use Laika\Core\Relay\Relays\Date;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Date;
 use App\Model\OrderModel;
 use App\Model\OrderStatusModel;
 use App\Model\PromoCodeModel;

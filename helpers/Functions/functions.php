@@ -9,7 +9,7 @@
  */
 
 declare(strict_types=1);
-echo 'Func<br>';
+
 use LBM\Support\Option;
 use Laika\Core\Service\Date;
 

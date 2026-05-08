@@ -72,7 +72,7 @@ abstract class Factory
         $this->redirect = new Redirect();
         $this->request = new Request();
         $this->page = (int) \call_user_func([$this->request, 'input'], 'page', 1);
-        $this->limit = \do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
         $this->acceptedQueries = $acceptedQueries;
         $model = "\\Laika\\App\\Model\\{$model}";
         // Check Model Exists

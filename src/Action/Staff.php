@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Relay\Relays\Request;
+use Laika\Core\Service\Request;
 use App\Model\StaffModel;
 use App\Model\StaffRoleModel;
 use App\Model\StaffStatusModel;
@@ -36,7 +36,7 @@ class Staff
         $this->model = new StaffModel();
         $this->role_model = new StaffRoleModel();
         $this->status_model = new StaffStatusModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+        $this->limit = option_int('data.limit', 20);
     }
 
     /**
