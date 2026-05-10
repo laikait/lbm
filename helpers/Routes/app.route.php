@@ -9,17 +9,17 @@
 /*----------------------------- LBM ROUTES -----------------------------*/
 ##########################################################################
 use Laika\Core\App\Http;
-use App\Middleware\Admin\Init; // Use It In 1st Middleware Each Admin Routes Without Login Pages
 use App\Middleware\Admin\Login; // Only For Login Page
+use App\Middleware\Admin\InitMiddleware; // Use It In 1st Middleware Each Admin Routes Without Login Pages
 use App\Middleware\Admin\ClientMiddleware;
 
 // Admin Login Routes
 Http::group(ADMIN, function(){
 
-    Http::get('/login', 'Admin\AuthController@login')->name('staff.login'); // Done
-    Http::post('/login', 'Admin\AuthController@login');
+    Http::get('/login', 'Admin\AuthController@login')->middleware([Login::class])->name('staff.login'); // Done
+    Http::post('/login', 'Admin\AuthController@login')->middleware([Login::class]);
 
-})->middleware([Login::class]);
+});
 
 
 // Admin Route Group
@@ -74,4 +74,4 @@ Http::group(ADMIN, function(){
 
     });
 
-})->middleware([Init::class]);
+})->middleware([InitMiddleware::class]);

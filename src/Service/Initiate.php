@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace LBM\Relay;
+namespace LBM\Service;
 
 use Laika\Core\Relay\Relay;
 

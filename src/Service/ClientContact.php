@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace LBM\Relay;
+namespace LBM\Service;
 
 use Laika\Core\Relay\Relay;
 
@@ -17,10 +17,10 @@ use Laika\Core\Relay\Relay;
  * @method static ?array update(int|string $entity)
  * @method static int count()
  */
-class Support extends Relay
+class ClientContact extends Relay
 {
     protected static function getRelayAccessor(): string
     {
-        return 'action.support';
+        return 'action.client.contact';
     } 
 }

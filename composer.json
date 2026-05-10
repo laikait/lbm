@@ -26,7 +26,7 @@
     "extra": {
         "laika": {
             "providers": [
-                "LBM\\Service\\Provider"
+                "LBM\\Relay\\Provider"
             ],
             "functions": [
                 "helpers/functions"

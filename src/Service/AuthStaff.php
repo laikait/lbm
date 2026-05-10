@@ -7,18 +7,20 @@
 
 declare(strict_types=1);
 
-namespace LBM\Relay;
+namespace LBM\Service;
 
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array single(int|string $entity, array $columns)
- * @method static array list()
+ * @method static void login()
+ * @method static void validate()
+ * @method static ?array user()
+ * @method static void destroy()
  */
-class Country extends Relay
+class AuthStaff extends Relay
 {
     protected static function getRelayAccessor(): string
     {
-        return 'action.country';
+        return 'action.auth.staff';
     } 
 }
