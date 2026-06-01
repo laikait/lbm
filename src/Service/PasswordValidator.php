@@ -12,14 +12,12 @@ namespace LBM\Service;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static void AuthInit()
- * @method static ?array user()
- * @method static void destroy()
+ * @method static array validate(string $input):
  */
-class AuthStaff extends Relay
+class PasswordValidator extends Relay
 {
     protected static function getRelayAccessor(): string
     {
-        return 'action.auth.staff';
+        return 'support.password.validator';
     } 
 }

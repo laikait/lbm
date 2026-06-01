@@ -44,7 +44,7 @@ class ClientContact
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
         $this->note_model = new ClientNoteModel();
-        $this->limit = option_int('data.limit', 20);
+        $this->limit = option_int('data_limit', 20);
     }
 
     /**
@@ -60,7 +60,7 @@ class ClientContact
                 ->select($columns)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->limit($this->limit)
                 ->get();
     }

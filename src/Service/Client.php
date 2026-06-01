@@ -20,8 +20,9 @@ use Laika\Core\Relay\Relay;
  * @method static int countByStatus(string $status)
  * @method static int countCurrentMonth()
  * @method static array statusList()
- * @method static array statusAndColor()
  * @method static ?array addClient()
+ * @method static ?array modifyClient(int $cid)
+ * @method static ?array resetPasswordByStaff(int $cid)
  */
 class Client extends Relay
 {

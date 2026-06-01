@@ -44,46 +44,8 @@ class Order
     /** @var InvoiceStatusModel $inv_status_model */
     protected InvoiceStatusModel $inv_status_model;
 
-    /** @var int $limit */
-    protected int $limit;
-
     /** @var array $columns */
-    protected array $columns = [
-            // Order Columns
-            'oid',
-            'order_number',
-            'amount',
-            'order_from_ip',
-            'fraud_score',
-            'order_created_at',
-            'order_updated_at',
-            // Client Columns
-            'cid',
-            'company_name',
-            'first_name',
-            'middle_name',
-            'last_name',
-            'username',
-            'email',
-            'phone_cc',
-            'phone_number',
-            // Status Columns
-            'order_statuses.status_name',
-            'order_statuses.status_color',
-            // Currency Columns
-            'currency_code',
-            'currency_symbol',
-            // Invoice Columns
-            'invoice_id',
-            'invoice_number',
-            'invoice_statuses.status_name as invoice_status_name',
-            'invoice_statuses.status_color as invoice_status_color',
-            'payment_method',
-            // Promo Columns
-            'promo_code',
-            'promo_type',
-            'value',
-        ];
+    protected array $columns;
 
     public function __construct()
     {
@@ -94,7 +56,43 @@ class Order
         $this->currency_model = new CurrencyModel();
         $this->invoice_model = new InvoiceModel();
         $this->inv_status_model = new InvoiceStatusModel();
-        $this->limit = do_hook('option.int', 'data.limit', 20);
+
+        $this->columns = [
+            // Order Columns
+            "{$this->model->table}.oid",
+            "{$this->model->table}.order_number",
+            "{$this->model->table}.amount",
+            "{$this->model->table}.order_from_ip",
+            "{$this->model->table}.fraud_score",
+            "{$this->model->table}.order_created_at",
+            "{$this->model->table}.order_updated_at",
+            // Client Columns
+            "{$this->client_model->table}.cid",
+            "{$this->client_model->table}.company_name",
+            "{$this->client_model->table}.first_name",
+            "{$this->client_model->table}.middle_name",
+            "{$this->client_model->table}.last_name",
+            "{$this->client_model->table}.username",
+            "{$this->client_model->table}.email",
+            "{$this->client_model->table}.phone_cc",
+            "{$this->client_model->table}.phone_number",
+            // Status Columns
+            "{$this->status_model->table}.status_name",
+            "{$this->status_model->table}.status_color",
+            // Currency Columns
+            "{$this->currency_model->table}.currency_code",
+            "{$this->currency_model->table}.prefix_symbol",
+            "{$this->currency_model->table}.suffix_symbol",
+            "{$this->currency_model->table}.exchange_rate",
+            // Invoice Columns
+            "{$this->invoice_model->table}.invoice_id",
+            "{$this->invoice_model->table}.invoice_number",
+            "{$this->invoice_model->table}.payment_gateway",
+            // Promo Columns
+            "{$this->promo_model->table}.promo_code",
+            "{$this->promo_model->table}.promo_type",
+            "{$this->promo_model->table}.promo_value",
+        ];
     }
 
     ##############################################################################################
@@ -126,9 +124,9 @@ class Order
                 ->join($this->invoice_model->table, "{$this->model->table}.invoice_relid", "=", $this->invoice_model->id)
                 ->join($this->inv_status_model->table, "{$this->invoice_model->table}.status_relid", "=", "{$this->inv_status_model->table}.{$this->inv_status_model->id}")
                 ->where($where, 'LIKE', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->order($this->model->id)
-                ->limit($this->limit)
+                ->limit(data_limit())
                 ->get();
         }
         return $this->model
@@ -140,9 +138,9 @@ class Order
                 ->join($this->invoice_model->table, "{$this->model->table}.invoice_relid", "=", $this->invoice_model->id)
                 ->join($this->inv_status_model->table, "{$this->invoice_model->table}.status_relid", "=", "{$this->inv_status_model->table}.{$this->inv_status_model->id}")
                 ->where($this->queries(), '=', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->order($this->model->id)
-                ->limit($this->limit)
+                ->limit(data_limit())
                 ->get();
     }
 
@@ -172,6 +170,8 @@ class Order
 
     /**
      * Client Orders
+     * @param int $client_relid
+     * @return array
      */
     public function clientOrders(int $client_relid): array
     {
@@ -194,9 +194,7 @@ class Order
      */
     public function count(): int
     {
-        return $this->model
-                    ->select($this->model->id)
-                    ->count();
+        return $this->model->select($this->model->id)->count();
     }
 
     /**

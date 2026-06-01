@@ -36,7 +36,7 @@ class Staff
         $this->model = new StaffModel();
         $this->role_model = new StaffRoleModel();
         $this->status_model = new StaffStatusModel();
-        $this->limit = option_int('data.limit', 20);
+        $this->limit = option_int('data_limit', 20);
     }
 
     /**
@@ -52,7 +52,7 @@ class Staff
                 ->select($columns)
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->limit($this->limit)
                 ->get();
     }

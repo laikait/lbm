@@ -12,7 +12,8 @@ declare(strict_types=1);
 namespace LBM\Action;
 
 use App\Model\ActivityLogModel;
-use Laika\Core\Relay\Relays\Visitor;
+use Laika\Core\Service\Visitor;
+use LBM\Exception\ActionException;
 use InvalidArgumentException;
 use LANG;
 
@@ -21,13 +22,9 @@ class Activity
     /** @var ActivityLogModel $model */
     protected ActivityLogModel $model;
 
-    /** @var int $limit */
-    protected int $limit;
-
     public function __construct()
     {
         $this->model = new ActivityLogModel();
-        $this->limit = option_int('data.limit', 20);
     }
 
     /**
@@ -47,7 +44,7 @@ class Activity
      */
     public function latest(?int $limit = null): array
     {
-        return $this->model->order($this->model->id, 'DESC')->limit($limit ?: $this->limit)->get();
+        return $this->model->order($this->model->id, 'DESC')->limit(data_limit($limit))->get();
     }
 
     /**
@@ -57,7 +54,7 @@ class Activity
      */
     public function byType(string $type): array
     {
-        return $this->model->where(['creator_type' => $type])->order($this->model->id, 'DESC')->get();
+        return $this->model->where(['author_type' => $type])->order($this->model->id, 'DESC')->get();
     }
 
     /**
@@ -68,13 +65,13 @@ class Activity
      */
     public function byTypeAndId(string $type, ?int $id = null): array
     {
-        return $this->model->where(['creator_type' => $type, 'creator_id' => $id])->order($this->model->id, 'DESC')->get();
+        return $this->model->where(['author_type' => $type, 'author_id' => $id])->order($this->model->id, 'DESC')->get();
     }
 
     /**
      * Insert Activity
-      * @param array{type: string,id?: int,short: string,long: string,changes?: array<string, array{old: mixed, new:mixed}>} $data
-      * @return array{message: string, status: bool}
+      * @param array{type:string, id?:?int, short:string, long:string, changes?:array<string,array{old:mixed,new:mixed}>} $data
+      * @return array{message:string, status:bool}
       * @throws InvalidArgumentException
      */
     public function addActivity(array $data): array
@@ -96,17 +93,22 @@ class Activity
         try {
             // Get Old Data for Change Log
             $args = [
-                'creator_type'  =>  $type,
-                'creator_id'    =>  $data['id'] ?? null,
+                'author_type'  =>  $type,
+                'author_id'    =>  $data['id'] ?? null,
                 'action_short'  =>  $data['short'] ?? '',
                 'action_long'   =>  $data['long'] ?? '',
                 'changes'       =>  serialize($data['changes'] ?? []),
                 'log_from_ip'   =>  Visitor::ip()
             ];
             // Insert Log
-            $this->model->insert($args);
-            return ['message' => LANG::$logCreateSuccessful, 'status' => true];
-        } catch (\Exception $e) {}
-        return ['message' => LANG::$logCreateFailed, 'status' => false];
+            $id = $this->model->transaction(function ($m) use ($args) {
+                $m->insert($args);
+            });
+
+            return make_return(true, LANG::$logCreateSuccessful, ['log' => ['id' => $id,'action' => 'create']]);
+        } catch (\Exception $e) {
+            if (config('env', 'debug', false)) throw new ActionException($e->getMessage());
+        }
+        return make_return(false, LANG::$logCreateFailed);
     }
 }

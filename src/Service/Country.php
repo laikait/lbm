@@ -12,7 +12,7 @@ namespace LBM\Service;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array single(int|string $entity, array $columns)
+ * @method static array single(int|string $entity)
  * @method static array list()
  */
 class Country extends Relay

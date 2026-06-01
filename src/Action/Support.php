@@ -66,7 +66,7 @@ class Support
         $this->reply_model = new SupportTicketReplyModel();
         $this->can_model = new SupportCannedResponseModel();
         $this->prio_model = new SupportTicketPriorityModel();
-        $this->limit = option_int('data.limit', 20);
+        $this->limit = option_int('data_limit', 20);
     }
 
     /**
@@ -85,7 +85,7 @@ class Support
                 ->join($this->client_model->table, 'client_relid', '=', $this->client_model->id)
                 ->join($this->prio_model->table, 'priority_relid', '=', $this->prio_model->id)
                 ->where($this->queries(), '=', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->limit($this->limit)
                 ->get();
     }

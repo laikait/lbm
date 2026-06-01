@@ -13,4 +13,4 @@
 declare(strict_types=1);
 
 // Require All Routes
-foreach (glob(__DIR__ . '/Routes/*.route.php') as $route_file) require_once $route_file;
+foreach (glob(__DIR__ . '/routes/*.route.php') as $route_file) require_once $route_file;

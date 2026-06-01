@@ -24,23 +24,22 @@ class Country
     public function __construct()
     {
         $this->model = new CountryModel();
-        $this->limit = option_int('data.limit', 20);
+        $this->limit = option_int('data_limit', 20);
     }
 
     /**
      * Get Single Data
-     * @param int|string $entity A Entity. Example: 1
-     * @param array $columns Columns to Get
+     * @param int|string $entity A Entity. Example: 1, 'US', 'USA'
      * @return array
      */
-    public function single(int|string $entity, array $columns): array
+    public function single(int|string $entity): array
     {
         $where = [
             'country_id'    =>  $entity,
             'iso2'          =>  $entity,
             'iso3'          =>  $entity,
         ];
-        return $this->model->select($columns)->where($where, '=', 'OR')->first();
+        return $this->model->where($where, '=', 'OR')->first();
     }
 
     /**

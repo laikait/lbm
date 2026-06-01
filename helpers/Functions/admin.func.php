@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-use LBM\Relay\AuthStaff;
+use LBM\Service\AuthStaff;
 use Laika\Core\Service\Request;
 
 /*=============================== ADMIN INFO ===============================*/
@@ -20,7 +20,9 @@ use Laika\Core\Service\Request;
  */
 function current_staff(): ?array
 {
-    return AuthStaff::user();
+    $staff = null;
+    if ($staff === null) $staff = AuthStaff::user();
+    return $staff;
 }
 
 /*================================= ACCESS =================================*/
@@ -60,3 +62,31 @@ function query_to_columns(array $keyValuePair): array
     }
     return $keys;
 }
+
+/**
+ * Make PI Chart From Data
+ * @param array<int, array{label: string, total: int, color: string}> $data
+ * Example: array(array('label'=>'paid', 'total'=>5, ));
+ * @return array{circumf: float|int, offset: float|int, arc: array{color: string, dash: float|int, gap: float|int, offset: float|int}}
+ */
+function pi_chart(array $data) {
+    $count = array_sum(array_column($data, 'total'));
+    $circumf = 2 * M_PI * 50;
+    $offset  = 0;
+    $arcs = [];
+    foreach ($data as $d) {
+        $dash = (int) $d['total'] / $count * $circumf;
+        $arcs[] = [
+            'color'  => $d['color'],
+            'dash'   => round($dash, 2),
+            'gap'    => round($circumf - $dash, 2),
+            'offset' => round(-$offset, 2),
+        ];
+        $offset += $dash;
+    }
+    return [
+        'circumf' => $circumf,
+        'offset' => $offset,
+        'arc' => $arcs
+    ];
+};

@@ -31,11 +31,7 @@ class AuthStaff
     ######################################################################################
     /*================================== EXTERNAL API ==================================*/
     ######################################################################################
-    /**
-     * Staff Login
-     * @return void
-     */
-    public function login(): void
+    public function AuthInit(): void
     {
         // Check Valid User Data Stored in Session & Database
         $id = (int) substr(Session::get("id", ''), 12);
@@ -44,36 +40,29 @@ class AuthStaff
         // Database Stored User
         $auth_user = Auth::user();
 
-        // Return if Already Authenticated
-        if (isset($auth_user['sid']) && ($id > 0) && ($id === (int) $auth_user['sid']) && ($type === ADMIN)) {
-            Redirect::with(LANG::$authenticated, true)->to('staff.dashboard');
-        }
+        $authenticated  =   isset($auth_user['sid']) &&
+                            $id > 0 &&
+                            $id === (int) $auth_user['sid'] && 
+                            $type === ADMIN;
 
-        // Process Login
-        if (Request::isPost()) $this->process();
-    }
+        $is_loggedin_url = is_loggedin_url('staff.login');
 
-    /**
-     * Validate Staff Login
-     * @return void
-     */
-    public function validate(): void
-    {
-        // Get Authenticated ID
-        $id = (int) substr(Session::get('id', ''), 12);
-        $type = Session::get("type");
+        // Redirect to Dashboard Route if Already Authenticated && Url is Logged IN Url
+        if ($authenticated && $is_loggedin_url) Redirect::with(LANG::$authenticated, true)->to('staff.dashboard');
 
-        // Authenticated User
-        $user = $this->user();
-
-        // Redirect to Login Page if Not Authenticated
-        if (!isset($user['sid']) || ($id < 1) || ((int) $user['sid'] !== $id) || ($type !== ADMIN)) {
+        // Redirect to Login Route If Not Authenticated & Not Loggedin Url
+        if (!$authenticated && !$is_loggedin_url) {
             // Destroy Previous Data if Exists
             Auth::destroy();
             // Remove Staff Data if Exists
             Session::end();
             Redirect::with(LANG::$unauthenticated, false)->to('staff.login');
         }
+
+        // If Loggedin Url & Request Is Post
+        if ($is_loggedin_url && Request::isPost()) $this->process();
+
+        return;
     }
 
     /**
@@ -151,7 +140,7 @@ class AuthStaff
         }
 
         // Redirect to Dashboard
-        Redirect::with(LANG::$welcome, true)->to('staff.dashboard');
+        Redirect::with(sprintf(LANG::$welcome, $staff['first_name']), true)->to('staff.dashboard');
     }
 
     /**

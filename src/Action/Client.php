@@ -11,26 +11,27 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
+use LBM\Service\Activity;
 use App\Model\ClientModel;
-use LBM\Exception\ActionException;
-use App\Model\ClientNoteModel;
-use App\Model\InvoiceModel;
-use App\Model\InvoiceStatusModel;
 use App\Model\CountryModel;
+use App\Model\InvoiceModel;
 use App\Model\CurrencyModel;
+use Laika\Core\Service\Date;
+use Laika\Core\Service\Vault;
+use App\Model\ClientNoteModel;
 use App\Model\ClientTokenModel;
 use App\Model\StaffStatusModel;
+use Laika\Core\Service\Request;
 use App\Model\ClientStatusModel;
+use App\Model\InvoiceStatusModel;
 use App\Model\ClientContactModel;
 use App\Model\ClientServiceModel;
+use Laika\Core\Service\ChangeLog;
+use LBM\Exception\ActionException;
 use App\Model\ClientServiceNoteModel;
 use App\Model\ClientServiceAddonModel;
 use App\Model\ClientServiceStatusModel;
 use App\Model\ClientServiceConfigValueModel;
-use Laika\Core\Service\Date;
-use Laika\Core\Service\Vault;
-use Laika\Core\Service\Regex;
 use LANG;
 
 class Client
@@ -44,14 +45,14 @@ class Client
     /** @var ClientNoteModel $note_model */
     protected ClientNoteModel $note_model;
 
+    /** @var ClientTokenModel $token_model */
+    protected ClientTokenModel $token_model;
+
     /** @var CountryModel $country_model */
     protected CountryModel $country_model;
 
     /** @var CurrencyModel $currency_model */
     protected CurrencyModel $currency_model;
-
-    /** @var int $limit */
-    protected int $limit;
 
     /** @var array $columns */
     protected array $columns;
@@ -60,10 +61,10 @@ class Client
     {
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
+        $this->token_model = new ClientTokenModel();
         $this->note_model = new ClientNoteModel();
         $this->country_model = new CountryModel();
         $this->currency_model = new CurrencyModel();
-        $this->limit = option_int('data.limit', 20);
         $this->columns = [
             // Client Columns
             "{$this->model->table}.cid",
@@ -79,6 +80,9 @@ class Client
             "{$this->model->table}.city",
             "{$this->model->table}.state",
             "{$this->model->table}.postcode",
+            "{$this->model->table}.country_relid",
+            "{$this->model->table}.currency_relid",
+            "{$this->model->table}.status_relid",
             "{$this->model->table}.client_created_at",
             "{$this->model->table}.client_updated_at",
             // Country Columns
@@ -91,7 +95,8 @@ class Client
             // Currency Columns
             "{$this->currency_model->table}.currency_id",
             "{$this->currency_model->table}.currency_code",
-            "{$this->currency_model->table}.currency_symbol"
+            "{$this->currency_model->table}.prefix_symbol",
+            "{$this->currency_model->table}.suffix_symbol",
         ];
     }
 
@@ -122,9 +127,9 @@ class Client
                 ->join($this->country_model->table, "{$this->model->table}.country_relid", '=', "{$this->country_model->table}.{$this->country_model->id}")
                 ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                 ->where($where, 'LIKE', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->order($this->model->id)
-                ->limit($this->limit)
+                ->limit(data_limit())
                 ->get();
         }
         return $this->model
@@ -133,9 +138,9 @@ class Client
                 ->join($this->country_model->table, "{$this->model->table}.country_relid", '=', "{$this->country_model->table}.{$this->country_model->id}")
                 ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                 ->where($this->queries(), '=', 'OR')
-                ->offset(Request::input('page', 1))
+                ->page(page_number())
                 ->order($this->model->id)
-                ->limit($this->limit)
+                ->limit(data_limit())
                 ->get();
     }
 
@@ -181,24 +186,24 @@ class Client
         if (Request::input('search')) {
             $input = Request::input('search');
             $where = [
-                "company_name" => "{$input}%",
-                "first_name" => "{$input}%",
-                "middle_name" => "{$input}%",
-                "last_name" => "{$input}%",
-                "username" => "{$input}%",
-                "email" => "{$input}%",
-                "phone_number" => "{$input}%",
-                "status_name" => "{$input}%"
+                "{$this->model->table}.company_name" => "{$input}%",
+                "{$this->model->table}.first_name" => "{$input}%",
+                "{$this->model->table}.middle_name" => "{$input}%",
+                "{$this->model->table}.last_name" => "{$input}%",
+                "{$this->model->table}.username" => "{$input}%",
+                "{$this->model->table}.email" => "{$input}%",
+                "{$this->model->table}.phone_number" => "{$input}%",
+                "{$this->status_model->table}.status_name" => "{$input}%"
             ];
             return $this->model
                 ->select($this->model->id)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
                 ->where($where, 'LIKE', 'OR')
                 ->count();
         }
         return $this->model
                 ->select($this->model->id)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
                 ->where($this->queries(), '=', 'OR')
                 ->count();
     }
@@ -212,7 +217,7 @@ class Client
     {
         return $this->model
                     ->select($this->model->id)
-                    ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
+                    ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
                     ->where(['status_name' => strtolower($status)])
                     ->count();
     }
@@ -240,16 +245,6 @@ class Client
     }
 
     /**
-     * Client Statuses List With Color
-     * @return array
-     */
-    public function statusAndColor(): array
-    {
-        $list = $this->status_model->get();
-        return array_column($list, 'status_color', 'status_name');
-    }
-
-    /**
      * Add Client
      * @return ?array
      */
@@ -259,108 +254,305 @@ class Client
             return null;
         }
 
-        // show(Request::inputs(), true);
+        $username = Request::input('username', '');
+        $email = Request::input('email', '');
+        $password = Request::input('password', '');
+        $username_minimum_length = option_int('username_minimum_length', 6);
+        $password_minimum_length = option_int('require_minimum_length', 6);
+        $statuses = implode(',', array_column(client_statuses(), 'status_id'));
+        $countries = implode(',', array_column(get_countries(), 'country_id'));
+        $currencies = implode(',', array_column(get_currencies(), 'currency_id'));
 
         // Validate Form
         $rules = [
-            'fname'     =>  'required',
-            'lname'     =>  'required',
-            'username'  =>  'required|min:' . option_int('username.min', 6),
-            'email'     =>  'required|email',
-            'password'  =>  'required|min:' . option_int('password.min', 6),
-            'cpassword' =>  'required|match:password',
-            'status'    =>  'required|in:'.implode(',',array_column($this->statusList(), 'status_id'))
+            "first_name"    =>  "required",
+            "last_name"     =>  "required",
+            "username"      =>  "required|callback:has_no_client,{$username}|min:{$username_minimum_length}",
+            "email"         =>  "required|email|callback:has_no_client,{$email}",
+            "password"      =>  "required|min:{$password_minimum_length}|callback:validate_password,{$password}",
+            "cpassword"     =>  "required|match:password",
+            "status"        =>  "required|in:{$statuses}",
+            "currency"      =>  "required|in:{$currencies}"
         ];
+
+        // Set Optional Rules If Exists
+        if (Request::input('company_name')) $rules['company_name'] = "regex:/^[\w\d\s\.]+$/i";
+        if (Request::input('middle_name'))  $rules['middle_name'] = "alpha";
+        if (Request::input('phone_code'))   $rules['phone_code'] = "regex:/^[\+\d\-]{1,4}$/";
+        if (Request::input('phone_number')) $rules['phone_number'] = "regex:/^[\d\(\)\s\-]+$/";
+        if (Request::input('street'))       $rules['street'] = "regex:/^[\w\s\/\,\#\-]+$/";
+        if (Request::input('city'))         $rules['city'] = "regex:/^[a-z\s\-]+$/i";
+        if (Request::input('state'))        $rules['state'] = "regex:/^[a-z\s\-\/]+$/i";
+        if (Request::input('postcode'))     $rules['postcode'] = "regex:/^[\w\s\-]+$/";
+        if (Request::input('country'))      $rules['country'] = "in:{$countries}";
+
         $messages = [
-            'fname.required'        =>  LANG::$requiredField,
-            'lname.required'        =>  LANG::$requiredField,
+            'first_name.required'   =>  LANG::$requiredField,
+            'last_name.required'    =>  LANG::$requiredField,
             'username.required'     =>  LANG::$requiredField,
+            'username.min'          =>  sprintf(LANG::$minLength, option_int('username_minimum_length', 6)),
+            'username.callback'     =>  LANG::$alreadyExists,
             'email.required'        =>  LANG::$requiredField,
-            'password.required'     =>  LANG::$requiredField,
-            'cpassword.required'    =>  LANG::$requiredField,
-            'status.required'       =>  LANG::$requiredField,
-            'username.min'          =>  sprintf(LANG::$minLength, option_int('username.min', 6)),
             'email.email'           =>  LANG::$invalidEmail,
-            'password.min'          =>  sprintf(LANG::$minLength, option_int('password.min', 6)),
+            'email.callback'        =>  LANG::$alreadyExists,
+            'password.required'     =>  LANG::$requiredField,
+            'password.min'          =>  sprintf(LANG::$minLength, option_int('require_minimum_length', 6)),
+            'password.callback'     =>  LANG::$passwordPolicyMismatch,
+            'cpassword.required'    =>  LANG::$requiredField,
             'cpassword.match'       =>  LANG::$confirmPasswordNotMatchd,
+            'status.required'       =>  LANG::$requiredField,
             'status.in'             =>  LANG::$invalidOption,
+            'currency.required'     =>  LANG::$requiredField,
+            'currency.in'           =>  LANG::$invalidOption
         ];
+
+        // Set Optional Messages If Exists
+        if (Request::input('company_name')) $messages['company_name.regex'] = LANG::$invalidInput;
+        if (Request::input('middle_name'))  $messages['middle_name.alpha'] = LANG::$invalidInput;
+        if (Request::input('phone_code'))   $messages['phone_code.regex'] = LANG::$invalidPhoneCode;
+        if (Request::input('phone_number')) $messages['phone_number.regex'] = LANG::$invalidPhoneNumber;
+        if (Request::input('street'))       $messages['street.regex'] = LANG::$invalidInput;
+        if (Request::input('city'))         $messages['city.regex'] = LANG::$invalidInput;
+        if (Request::input('state'))        $messages['state.regex'] = LANG::$invalidInput;
+        if (Request::input('postcode'))     $messages['postcode'] = LANG::$invalidInput;
+        if (Request::input('country'))      $messages['country.regex'] = LANG::$invalidOption;
 
         // Validate Request
         Request::validate($rules, $messages);
 
-        // Validate Username Doesn't Exists
-        if ($this->model->select($this->model->id)->where(['username' => Request::input('username', '')])->first()) {
-            Request::addError('username', LANG::$alreadyExists);
-            return ['message' => LANG::$alreadyExists, 'status' => false];
-        }
-
-        // Validate Email Doesn't Exists
-        if ($this->model->select($this->model->id)->where(['email' => Request::input('email', '')])->first()) {
-            Request::addError('username', LANG::$alreadyExists);
-            return ['message' => LANG::$alreadyExists, 'status' => false];
-        }
-
-        // Validate Phone Number
-        if (Request::input('phone_number')) {
-            if (preg_match('/[^0-9\(\)\s\-]+/', Request::input('phone_number'))) {
-                Request::addError('phone_number', LANG::$invalidPhoneNumber);
-                return ['message' => LANG::$generalError, 'status' => false];
-            }
-        }
-
         // Check Request Error
         if (!empty(Request::errors())) {
-            return ['message' => LANG::$generalError, 'status' => false];
+            return make_return(false, LANG::$invalidRequest, ['errors' => Request::errors()]);
         }
 
         // Insert New Client
         try {
             $staff = current_staff();
             $data = [
-                'company_name'  => (string) Request::input('cname'),
-                'first_name'  => (string) Request::input('fname'),
-                'middle_name'  => (string) Request::input('mname'),
-                'last_name'  => (string) Request::input('lname'),
-                'email'  => (string) Request::input('email'),
-                'username'  => (string) Request::input('username'),
-                'password' => (string) Vault::hashPassword(Request::input('password')),
-                'phone_cc' => (string) Request::input('phone_code'),
-                'phone_number' => (string) Request::input('phone_number'),
-                'street' => (string) Request::input('street'),
-                'city' => (string) Request::input('city'),
-                'state' => (string) Request::input('state'),
-                'postcode' => (string) Request::input('zip'),
-                'country_relid' => (int) Request::input('country'),
-                'currency_relid' => (int) Request::input('currency'),
-                'status_relid' => (int) Request::input('status'),
+                'company_name'      =>  (string) Request::input('company_name', ''),
+                'first_name'        =>  (string) Request::input('first_name', ''),
+                'middle_name'       =>  (string) Request::input('middle_name', ''),
+                'last_name'         =>  (string) Request::input('last_name', ''),
+                'email'             =>  (string) Request::input('email'),
+                'username'          =>  (string) Request::input('username'),
+                'password'          =>  (string) Vault::hashPassword(Request::input('password')),
+                'phone_cc'          =>  (string) Request::input('phone_code'),
+                'phone_number'      =>  (string) Request::input('phone_number'),
+                'street'            =>  (string) Request::input('street'),
+                'city'              =>  (string) Request::input('city'),
+                'state'             =>  (string) Request::input('state'),
+                'postcode'          =>  (string) Request::input('postcode'),
+                'country_relid'     =>  (int) Request::input('country'),
+                'currency_relid'    =>  (int) Request::input('currency'),
+                'status_relid'      =>  (int) Request::input('status')
             ];
 
-            // // Insert Note
-            // $this->model->insert($data);
-            // // Insert Activity Log
-            // $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID], true) . "\">{$clientID}</a>";
-            // $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']], true) . "\">{$staff['sid']}</a>";
-            // $data = [
-            //     'type'      =>  'staff',
-            //     'id'        =>  $staff['sid'],
-            //     'short'     =>  LANG::$noteAdded,
-            //     'long'      =>  sprintf('A Note Added to Client #%s by Staff %s', $client_href, $staff_href)
-            // ];
-            // $log = Activity::addActivity($data);
+            // Insert Client
+            $id = $this->model->transaction(function ($m) use ($data) {
+                return $m->insert($data);
+            });
 
-            // if (!$log['status']) {
-            //     return ['message' => $log['message'], 'status' => $log['status']];
-            // }
-            return ['message' => LANG::$noteCreateSuccessful, 'status' => true];
+            // Insert Activity Log
+            $client_href = "<a href=\"" . named('staff.client', ['client' => $id]) . "\">{$id}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
 
+            $log_data = [
+                'type'  =>  'staff',
+                'id'    =>  $staff['sid'],
+                'short' =>  LANG::$noteAdded,
+                'long'  =>  sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href)
+            ];
+
+            $log = Activity::addActivity($log_data);
+
+            return !$log['status'] ?
+                    make_return(false, $log['message']) :
+                    make_return(true, LANG::$newClientAdded, array_merge($data, ['client' => ['id' => $id, 'action' => 'create']]));
         } catch (\Throwable $th) {
-            if (config('env.debug')) {
+            if (config('env', 'debug', false)) {
                 throw new ActionException($th->getMessage());
             }
-            return ['message' => LANG::$generalError, 'status' => false];
+            return make_return(false, LANG::$generalError);
         }
-        return null;
+    }
+
+    /**
+     * Modify Client
+     * @param int $cid
+     * @return ?array
+     */
+    public function modifyClient(int $cid): ?array
+    {
+        if (!Request::isPost()) {
+            return null;
+        }
+
+        // Validate Form
+        $rules = [
+            'first_name'    =>  'required|regex:/^[\w\s\.]+$/i',
+            'last_name'     =>  'required|regex:/^[\w\s\.]+$/i',
+            'status'        =>  'required|in:' . implode(',', array_column(client_statuses(), 'status_id')),
+            'currency'      =>  'required|in:' . implode(',', array_column(get_currencies(), 'currency_id'))
+        ];
+        // Set Optional Rules If Exists
+        if (Request::input('company_name')) $rules['company_name'] = 'regex:/^[\w\d\s\.]+$/i';
+        if (Request::input('middle_name'))  $rules['middle_name'] = 'alpha';
+        if (Request::input('phone_code'))   $rules['phone_code'] = 'regex:/^[\+\d\-]{1,4}$/';
+        if (Request::input('phone_number')) $rules['phone_number'] = 'regex:/^[\d\(\)\s\-]+$/';
+        if (Request::input('street'))       $rules['street'] = 'regex:/^[\w\s\/\,\#\-]+$/';
+        if (Request::input('city'))         $rules['city'] = 'regex:/^[a-z\s\-]+$/i';
+        if (Request::input('state'))        $rules['state'] = 'regex:/^[a-z\s\-\/]+$/i';
+        if (Request::input('postcode'))     $rules['postcode'] = 'regex:/^[\w\s\-]+$/';
+        if (Request::input('country'))      $rules['country'] = 'in:'.implode(',', array_column(get_countries(), 'country_id'));
+
+        $messages = [
+            'first_name.required'   =>  LANG::$requiredField,
+            'first_name.regex'      =>  LANG::$unsupportedCharacter,
+            'last_name.required'    =>  LANG::$requiredField,
+            'last_name.regex'       =>  LANG::$unsupportedCharacter,
+            'status.required'       =>  LANG::$requiredField,
+            'status.in'             =>  LANG::$invalidOption,
+            'currency.required'     =>  LANG::$requiredField,
+            'currency.in'           =>  LANG::$invalidOption
+        ];
+        // Set Optional Messages If Exists
+        if (Request::input('company_name')) $messages['company_name.regex'] = LANG::$invalidInput;
+        if (Request::input('middle_name'))  $messages['middle_name.alpha'] = LANG::$invalidInput;
+        if (Request::input('phone_code'))   $messages['phone_code.regex'] = LANG::$invalidPhoneCode;
+        if (Request::input('phone_number')) $messages['phone_number.regex'] = LANG::$invalidPhoneNumber;
+        if (Request::input('street'))       $messages['street.regex'] = LANG::$invalidInput;
+        if (Request::input('city'))         $messages['city.regex'] = LANG::$invalidInput;
+        if (Request::input('state'))        $messages['state.regex'] = LANG::$invalidInput;
+        if (Request::input('postcode'))     $messages['postcode'] = LANG::$invalidInput;
+        if (Request::input('country'))      $messages['country.regex'] = LANG::$invalidOption;
+
+        // Validate Request
+        Request::validate($rules, $messages);
+
+        // Check Request Error
+        if (!empty(Request::errors())) {
+            return ['message' => LANG::$invalidRequest, 'status' => false];
+        }
+        // Insert New Client
+        try {
+            $data = [
+                'company_name'      =>  (string) Request::input('company_name', ''),
+                'first_name'        =>  (string) Request::input('first_name', ''),
+                'middle_name'       =>  (string) Request::input('middle_name', ''),
+                'last_name'         =>  (string) Request::input('last_name', ''),
+                'phone_cc'          =>  (string) Request::input('phone_code'),
+                'phone_number'      =>  (string) Request::input('phone_number'),
+                'street'            =>  (string) Request::input('street'),
+                'city'              =>  (string) Request::input('city'),
+                'state'             =>  (string) Request::input('state'),
+                'postcode'          =>  (string) Request::input('postcode'),
+                'country_relid'     =>  (int) Request::input('country'),
+                'currency_relid'    =>  (int) Request::input('currency'),
+                'status_relid'      =>  (int) Request::input('status')
+            ];
+
+            ChangeLog::addExisting(get_client($cid));
+            ChangeLog::addNew($data);
+            $result = ChangeLog::getLogs();
+
+            // Validate Has Changes
+            if ($result['changes'] == []) {
+                return ['message' => LANG::$noChanges, 'status' => false];
+            }
+
+            // Update Client
+            try {
+                $this->model->transaction(function (ClientModel $m) use ($data, $cid) {
+                    $m->where(['cid' => $cid])->update($data);
+                });
+            } catch (\Throwable $th) {
+                return ['message' => LANG::$generalError, 'status' => false];
+            }
+
+            // Activity Log
+            $staff = current_staff();
+
+            // Insert Log
+            $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
+
+            $log_data = [
+                'type'      =>  'staff',
+                'id'        =>  $staff['sid'],
+                'short'     =>  LANG::$update,
+                'long'      =>  sprintf(LANG::$clientUpdatedByStaff, $client_href, $staff_href),
+                'changes'   =>  $result['changes']
+            ];
+
+            $log = Activity::addActivity($log_data);
+
+            if (!$log['status']) {
+                return ['message' => $log['message'], 'status' => $log['status']];
+            }
+            return ['message' => LANG::$saveSuccess, 'status' => true];
+
+        } catch (\Throwable $th) {
+            if (config('env', 'debug')) throw new ActionException($th->getMessage());
+        }
+        return ['message' => LANG::$generalError, 'status' => false];
+    }
+
+    /**
+     * Reset Password By Staff
+     * @param int $cid
+     * @param ?int $contact_id
+     * @return ?array
+     */
+    public function resetPasswordByStaff(int $cid, ?int $contact_id = null): ?array
+    {
+        // Check Request is Post
+        if (!Request::isPost()) {
+            return null;
+        }
+
+        $expire_ttl = option('client_token_expire_ttl', '1800');
+
+        // Reset Password
+        try {
+            $data = [
+                'token'                 =>  $this->generateClientToken(32),
+                'type'                  =>  'password_reset',
+                'client_relid'          =>  $cid,
+                'client_contact_relid'  =>  $contact_id,
+                'expires'               =>  Date::modify("+{$expire_ttl} seconds")->format('Y-m-d H:i:s')
+            ];
+
+            $this->token_model->transaction(function (ClientTokenModel $m) use ($cid, $data, $contact_id) {
+                $id = $m->insert($data);
+                // Add Activity Log
+                $staff = current_staff();
+
+                $contact_href = $contact_id ? "<a href=\"" . named('staff.client.contact', ['client' => $cid, 'contact' => $contact_id]) . "\">{$contact_id}</a>" : "";
+                $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
+                $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
+                $long = $contact_id ?
+                        sprintf(LANG::$clientContactPasswordResetSuccess, $client_href, $contact_href, $staff_href) :
+                        sprintf(LANG::$clientPasswordResetSuccess, $client_href, $staff_href);
+
+                $log_data = [
+                    'type'  =>  'staff',
+                    'id'    =>  $staff['sid'],
+                    'short' =>  LANG::$passwordResetLinkSent,
+                    'long'  =>  $long
+                ];
+
+                $log = Activity::addActivity($log_data);
+
+                if (!$log['status']) {
+                    return ['message' => $log['message'], 'status' => $log['status']];
+                }
+                return make_return(true, LANG::$passwordResetLinkSent, ['token' => ['id' => $id, 'action' => 'create']]);
+            });
+
+        } catch (\Throwable $th) {
+            if (config('env', 'debug', false)) throw new ActionException($th->getMessage());
+        }
+        return make_return(false, LANG::$resetPasswordFailed);
     }
 
     ##############################################################################################
@@ -381,5 +573,18 @@ class Client
             "status" => "{$this->status_model->table}.status_name"
         ];
         return query_to_columns($query_to_column);
+    }
+
+    /**
+     * Generate Random Client Token
+     * @param int $length
+     * @return string
+     */
+    protected function generateClientToken(int $length): string
+    {
+        $token = bin2hex(random_bytes($length));
+        $realtime = Date::now()->format('Y-m-d H:i:s');
+        $exists = $this->token_model->where(['token' => $token])->where(['expires' => $realtime], '<=')->first();
+        return $exists ? $this->generateClientToken($length) : $token;
     }
 }

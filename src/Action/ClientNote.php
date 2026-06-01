@@ -17,7 +17,7 @@ use App\Model\ClientNoteModel;
 use App\Model\ClientModel;
 use App\Model\StaffModel;
 use LBM\Exception\ActionException;
-use LBM\Relay\Activity;
+use LBM\Service\Activity;
 use LANG;
 
 class ClientNote
@@ -31,9 +31,6 @@ class ClientNote
     /** @var StaffModel $smodel */
     protected StaffModel $smodel;
 
-    /** @var int $limit */
-    protected int $limit;
-
     /** @var array $columns */
     protected array $columns;
 
@@ -42,7 +39,6 @@ class ClientNote
         $this->model = new ClientNoteModel();
         $this->smodel = new StaffModel();
         $this->cmodel = new ClientModel();
-        $this->limit = option_int('data.limit', 20);
         $this->columns = [
             // Note Columns
             "{$this->model->table}.note_id",
@@ -63,17 +59,17 @@ class ClientNote
     }
 
     /**
-     * Get Note By ID
+     * Get Single Note By ID
      * @param int $id
      * @return array
      */
-    public function getById(int $id): array
+    public function single(int $id): array
     {
         return $this->model
                     ->select($this->columns)
                     ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
                     ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
-                    ->where(['id' => $id])
+                    ->where(['note_id' => $id])
                     ->first();
     }
 
@@ -123,7 +119,7 @@ class ClientNote
                     ->join($this->cmodel->table, "{$this->cmodel->table}.cid", '=', "{$this->model->table}.client_relid")
                     ->join($this->smodel->table, "{$this->smodel->table}.sid", '=', "{$this->model->table}.staff_relid")
                     ->order($this->model->id, 'DESC')
-                    ->limit($limit ?: $this->limit)
+                    ->limit(data_limit($limit))
                     ->get();
     }
 
@@ -169,13 +165,13 @@ class ClientNote
             // Insert Note
             $this->model->insert($data);
             // Insert Activity Log
-            $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID], true) . "\">{$clientID}</a>";
-            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']], true) . "\">{$staff['sid']}</a>";
+            $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID]) . "\">{$clientID}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
             $data = [
                 'type'      =>  'staff',
                 'id'        =>  $staff['sid'],
                 'short'     =>  LANG::$noteAdded,
-                'long'      =>  sprintf('A Note Added to Client #%s by Staff %s', $client_href, $staff_href)
+                'long'      =>  sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href)
             ];
             $log = Activity::addActivity($data);
 
@@ -185,7 +181,7 @@ class ClientNote
             return ['message' => LANG::$noteCreateSuccessful, 'status' => true];
 
         } catch (\Throwable $th) {
-            if (config('env.debug')) {
+            if (config('env', 'debug')) {
                 throw new ActionException($th->getMessage());
             }
             return ['message' => LANG::$generalError, 'status' => false];

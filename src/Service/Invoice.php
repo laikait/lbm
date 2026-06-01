@@ -12,8 +12,9 @@ namespace LBM\Service;
 use Laika\Core\Relay\Relay;
 
 /**
+ * @method static array     limit()
+ * @method static array     single(int|string $entity)
  * @method static array     latest(?int $limit = null)
- * @method static array     single(int $entity)
  * @method static array     groupByStatus()
  * @method static string    totalSpentByClient(int $client_relid)
  * @method static string    totalOutstandingByClient(int $client_relid)

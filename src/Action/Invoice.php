@@ -11,14 +11,15 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
 use App\Model\ClientModel;
 use App\Model\InvoiceModel;
 use App\Model\CurrencyModel;
 use App\Model\InvoiceItemModel;
+use Laika\Core\Service\Request;
 use App\Model\InvoiceStatusModel;
-use App\Model\InvoiceItemTypeModel;
+use App\Model\PaymentGatewayModel;
 use LBM\Exception\ActionException;
+use App\Model\InvoiceItemTypeModel;
 
 class Invoice
 {
@@ -34,8 +35,11 @@ class Invoice
     /** @var InvoiceStatusModel $status_model */
     protected InvoiceStatusModel $status_model;
 
-    /** @var int $limit */
-    protected int $limit;
+    /** @var PaymentGatewayModel $payment_gateway_model */
+    protected PaymentGatewayModel $payment_gateway_model;
+
+    /** @var array $columns */
+    protected array $columns;
 
     public function __construct()
     {
@@ -43,75 +47,86 @@ class Invoice
         $this->currency_model = new CurrencyModel();
         $this->client_model = new ClientModel();
         $this->status_model = new InvoiceStatusModel();
-        $this->limit = option_int('data.limit', 20);
+        $this->payment_gateway_model = new PaymentGatewayModel();
+        $this->columns = [
+            // Invocie Columns
+            "{$this->model->table}.invoice_id",
+            "{$this->model->table}.invoice_number",
+            "{$this->model->table}.subtotal",
+            "{$this->model->table}.discount",
+            "{$this->model->table}.tax",
+            "{$this->model->table}.total",
+            "{$this->model->table}.credit_applied",
+            "{$this->model->table}.amount_paid",
+            "{$this->model->table}.invoice_due_date",
+            "{$this->model->table}.invoice_paid_date",
+            "{$this->model->table}.terms",
+            "{$this->model->table}.invoice_created_at",
+            "{$this->model->table}.invoice_updated_at",
+            // Status Columns
+            "{$this->status_model->table}.status_name",
+            "{$this->status_model->table}.status_color",
+            // Client Columns
+            "{$this->client_model->table}.cid",
+            "{$this->client_model->table}.first_name",
+            "{$this->client_model->table}.middle_name",
+            "{$this->client_model->table}.last_name",
+            "{$this->client_model->table}.username",
+            "{$this->client_model->table}.email",
+            // Currency Columns
+            "{$this->currency_model->table}.currency_id",
+            "{$this->currency_model->table}.currency_code",
+            "{$this->currency_model->table}.prefix_symbol",
+            "{$this->currency_model->table}.suffix_symbol",
+            "{$this->currency_model->table}.exchange_rate",
+            // Payment Gateway Columns
+            "{$this->payment_gateway_model->table}.gateway_id",
+            "{$this->payment_gateway_model->table}.gateway_name",
+            "{$this->payment_gateway_model->table}.gateway_slug",
+            "{$this->payment_gateway_model->table}.display_name",
+            "{$this->payment_gateway_model->table}.module_class",
+            "{$this->payment_gateway_model->table}.logo_url",
+            "{$this->payment_gateway_model->table}.is_active"
+        ];
     }
 
     /**
      * Get Limit
-     * @param string|array|null $columns Default is null
      * @return array
      */
-    public function limit(string|array|null $columns = null)
+    public function limit(): array
     {
-        $columns = $columns ?: ['invoice_id', 'invoice_number', 'total', 'currency_id', 'currency_code', 'currency_symbol', 'cid', 'company_name', 'username', 'status_name', 'status_color', 'invoice_created_at'];
-
         return $this->model
-                ->select($columns)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
-                ->join($this->client_model->table, 'client_relid', '=', $this->client_model->id)
+                ->select($this->columns)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                ->join($this->client_model->table, "{$this->model->table}.client_relid", '=', "{$this->client_model->table}.{$this->client_model->id}")
+                ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
+                ->join($this->payment_gateway_model->table, "{$this->model->table}.payment_gateway", '=', "{$this->payment_gateway_model->table}.{$this->payment_gateway_model->id}")
+                ->page(page_number())
                 ->order($this->model->id)
-                ->limit($this->limit)
+                ->limit(data_limit())
                 ->get();
 
     }
 
     /**
      * Get Single Invoice From id/number
-     * @param int $entity A Entity. Example: 1/inv-20241205
+     * @param int|string $entity A Entity. Example: 1/inv-20241205
      * @return array
      */
-    public function single(int $entity): array
+    public function single(int|string $entity): array
     {
         $where = [
-            'invoice_id' => $entity,
-            'invoice_number' => $entity
-        ];
-
-        $columns = [
-            // Invoice Columns
-            'invoice_id',
-            'invoice_number',
-            'subtotal',
-            'discount',
-            'tax',
-            'total',
-            'credit_applied',
-            'amount_paid',
-            'invoice_due_date',
-            'invoice_paid_date',
-            'payment_method',
-            'terms',
-            'invoice_created_at',
-            'invoice_updated_at',
-            // Currency Columns
-            'currency_id',
-            'currency_code',
-            'currency_symbol',
-            // User Columns
-            'cid',
-            'company_name',
-            'username',
-            // Status Columns
-            'status_id',
-            'status_name',
-            'status_color',
+            "{$this->model->table}.invoice_id" => $entity,
+            "{$this->model->table}.invoice_number" => $entity
         ];
 
         return $this->model
-                    ->select($columns)
-                    ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
-                    ->join($this->client_model->table, 'client_relid', '=', $this->client_model->id)
-                    ->join($this->currency_model->table, 'currency_relid', '=', $this->currency_model->id)
+                    ->select($this->columns)
+                    ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                    ->join($this->client_model->table, "{$this->model->table}.client_relid", '=', "{$this->client_model->table}.{$this->client_model->id}")
+                    ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
+                    ->join($this->payment_gateway_model->table, "{$this->model->table}.payment_gateway", '=', "{$this->payment_gateway_model->table}.{$this->payment_gateway_model->id}")
                     ->where($where, '=', 'OR')
                     ->first();
     }
@@ -123,29 +138,15 @@ class Invoice
      */
     public function latest(?int $limit = null): array
     {
-        $columns = [
-            'invoice_id',
-            'invoice_number',
-            'total',
-            'invoices.currency_relid',
-            'currency_id',
-            'currency_code',
-            'currency_symbol',
-            'cid',
-            'company_name',
-            'username',
-            'status_name',
-            'status_color',
-            'invoice_created_at'
-        ];
-
         return $this->model
-                ->select($columns)
-                ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
-                ->join($this->client_model->table, 'client_relid', '=', $this->client_model->id)
-                ->join($this->currency_model->table, 'invoices.currency_relid', '=', $this->currency_model->id)
+                ->select($this->columns)
+                ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                ->join($this->client_model->table, "{$this->model->table}.client_relid", '=', "{$this->client_model->table}.{$this->client_model->id}")
+                ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
+                ->join($this->payment_gateway_model->table, "{$this->model->table}.payment_gateway", '=', "{$this->payment_gateway_model->table}.{$this->payment_gateway_model->id}")
+                ->page(page_number())
                 ->order($this->model->id, 'DESC')
-                ->limit($limit ?: $this->limit)
+                ->limit(data_limit($limit))
                 ->get();
     }
 
@@ -153,7 +154,7 @@ class Invoice
      * Group By Status
      * @return array
      */
-    public function groupByStatus()
+    public function groupByStatus(): array
     {
         $columns = ['status_name as label', 'count(invoice_id) as total', 'status_color as color'];
         return $this->model
@@ -165,6 +166,7 @@ class Invoice
 
     /**
      * Total Spent By Client
+     * @param int $client_relid
      * @return string
      */
     public function totalSpentByClient(int $client_relid): string
@@ -179,9 +181,14 @@ class Invoice
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($where)
                 ->first()['total'] ?? 0;
-        return number_format((float) $val, 2, do_hook('option', 'decimal.symbol', '.'), ',');
+        return number_format((float) $val, 2, decimal_symbol(), thousand_separator());
     }
 
+    /**
+     * Total Outstanding By Client
+     * @param int $client_relid
+     * @return string
+     */
     public function totalOutstandingByClient(int $client_relid): string
     {
         $where = [
@@ -194,7 +201,7 @@ class Invoice
                 ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
                 ->where($where)
                 ->first()['total'] ?? 0;
-        return number_format((float) $val, 2, do_hook('option', 'decimal.symbol', '.'), ',');
+        return number_format((float) $val, 2, decimal_symbol(), thousand_separator());
     }
 
     /**
@@ -205,25 +212,35 @@ class Invoice
     public function clientInvoices(int $client_relid): array
     {
         $columns = [
-            'invoice_id',
-            'invoice_number',
-            'total',
-            'currency_id',
-            'currency_code',
-            'currency_symbol',
-            'status_name',
-            'status_color',
-            'invoice_due_date',
-            'invoice_paid_date',
-            'payment_method',
-            'invoice_created_at',
-            'invoice_updated_at'
+            // Invocie Columns
+            "{$this->model->table}.invoice_id",
+            "{$this->model->table}.invoice_number",
+            "{$this->model->table}.subtotal",
+            "{$this->model->table}.discount",
+            "{$this->model->table}.tax",
+            "{$this->model->table}.total",
+            "{$this->model->table}.credit_applied",
+            "{$this->model->table}.amount_paid",
+            "{$this->model->table}.invoice_due_date",
+            "{$this->model->table}.invoice_paid_date",
+            "{$this->model->table}.terms",
+            "{$this->model->table}.invoice_created_at",
+            "{$this->model->table}.invoice_updated_at",
+            // Currency Columns
+            "{$this->currency_model->table}.currency_id",
+            "{$this->currency_model->table}.currency_code",
+            "{$this->currency_model->table}.prefix_symbol",
+            "{$this->currency_model->table}.suffix_symbol",
+            "{$this->currency_model->table}.exchange_rate",
+            // Status Columns
+            "{$this->status_model->table}.status_name",
+            "{$this->status_model->table}.status_color"
         ];
 
         return $this->model
                     ->select($columns)
-                    ->join($this->status_model->table, 'status_relid', '=', $this->status_model->id)
-                    ->join($this->currency_model->table, 'currency_relid', '=', $this->currency_model->id)
+                    ->join($this->status_model->table, "{$this->model->table}.status_relid", '=', "{$this->status_model->table}.{$this->status_model->id}")
+                    ->join($this->currency_model->table, "{$this->model->table}.currency_relid", '=', "{$this->currency_model->table}.{$this->currency_model->id}")
                     ->where(['client_relid' => $client_relid])
                     ->order('invoice_id', 'DESC')
                     ->get();

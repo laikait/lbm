@@ -24,13 +24,11 @@ class Initiate
 {
     public function __construct()
     {
-        if (!Connection::has()) {
-            // Initiate Database
-            Connection::add(config('database', 'default'));
-        }
+        // Initiate Database
+        if (!Connection::has()) Connection::add(config('database', 'default'));
+
         // Default Timezone & Format
-        Date::setFormat(apply_hook('option', 'datetime.format', 'Y-m-d H:i:s'))
-            ->setAppTimezone(apply_hook('option', 'time.zone', 'UTC'));
+        Date::setFormat(option('datetime_format', 'Y-m-d H:i:s'))->setAppTimezone(option('time_zone', 'UTC'));
 
         // Apply Database Session Timezone
         Connection::applyTimezone(Date::getOffset());
@@ -44,20 +42,20 @@ class Initiate
     public function common(?string $type = null): void
     {
         // Initiate Session
-        $dbsession = option_bool('dbsession');
-        $dbsession ? Session::config(Connection::get()) : Session::config();
+        Session::config(Connection::get());
+
         Session::for($type);
 
         // Initiate Local
         switch (strtolower((string) $type)) {
             case strtolower(ADMIN):
-                Local::set(option('admin.local', 'en'));
+                Local::set(option('admin_local', 'en'));
                 Local::setPath('admin');
                 Local::load();
                 break;
 
             case strtolower(PANEL):
-                Local::set(option('panel.local', 'en'));
+                Local::set(option('panel_local', 'en'));
                 Local::setPath('panel');
                 Local::load();
                 break;

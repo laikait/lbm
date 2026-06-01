@@ -12,7 +12,7 @@ namespace LBM\Service;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static array getById(int $id)
+ * @method static array single(int $id)
  * @method static array getByClientId(int $relid, string $orderBy = 'ASC')
  * @method static array getByStaffId(int $relid, string $orderBy = 'ASC')
  * @method static array latest(?int $limit = null)
