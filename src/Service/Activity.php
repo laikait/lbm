@@ -14,8 +14,8 @@ use Laika\Core\Relay\Relay;
 /**
  * @method static array single(int $id)
  * @method static array latest(?int $limit = null)
- * @method static array byType(string $type)
- * @method static array byTypeAndId(string $type, ?int $id = null)
+ * @method static array byType(string $type, ?int $limit)
+ * @method static array byTypeAndId(string $type, ?int $id = null, ?int $limit = null)
  * @method static array addActivity(array $data)
  */
 class Activity extends Relay

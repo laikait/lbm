@@ -79,7 +79,7 @@ function get_activities_by_author(string $type, ?int $id = null): array
     static $activities = [];
     $type = strtolower($type);
     // Validate Parameter
-    if (!in_array($type, ['client', 'staff', 'system'])) return [];
+    if (!in_array($type, ['client', 'staff', 'system'])) throw new InvalidArgumentException("Invalid Type [{$type}]. Accepted Types Are ['client', 'staff', 'system']");
 
     $key = $type . '_' . ($id ?? null);
     if (!isset($activities[$key])) $activities[$key] = Activity::byTypeAndId($type, $id);

@@ -11,50 +11,50 @@
 
 declare(strict_types=1);
 
-use LBM\Support\Option;
+// use LBM\Support\Option;
 use Laika\Core\Service\Url;
 use Laika\Core\Service\Date;
 use Laika\Core\Service\Math;
 use LBM\Service\Currency;
 use LBM\Service\PasswordValidator;
 
-/**
- * Get App DB Option
- * @param string $key DB Option entity
- * @param mixed $default Option Default Value
- * @return string
- */
-function option(string $key, mixed $default = '')
-{
-    static $options = [];
-    if (!array_key_exists($key, $options)) {
-        $options[$key] = Option::get($key, $default);
-    }
-    return $options[$key];
-};
+// /**
+//  * Get App DB Option
+//  * @param string $key DB Option entity
+//  * @param mixed $default Option Default Value
+//  * @return string
+//  */
+// function option(string $key, mixed $default = '')
+// {
+//     static $options = [];
+//     if (!array_key_exists($key, $options)) {
+//         $options[$key] = Option::get($key, $default);
+//     }
+//     return $options[$key];
+// };
 
-/**
- * Get App DB Option as Int
- * @param string $key DB Option entity
- * @return int
- */
-function option_int(string $key, int $default = 0): int
-{
-    $value = option($key, $default);
-    return preg_match('/^[0-9]+$/i', (string) $value) ? (int) $value : $default;
-};
+// /**
+//  * Get App DB Option as Int
+//  * @param string $key DB Option entity
+//  * @return int
+//  */
+// function option_int(string $key, int $default = 0): int
+// {
+//     $value = option($key, $default);
+//     return preg_match('/^[0-9]+$/i', (string) $value) ? (int) $value : $default;
+// };
 
-/**
- * Get App DB Option as Bool
- * @param string $key DB Option entity
- * @param bool $default Default
- * @return int
- */
-function option_bool(string $key, bool $default = false): bool
-{
-    $value = option($key, 'no');
-    return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : $default;
-};
+// /**
+//  * Get App DB Option as Bool
+//  * @param string $key DB Option entity
+//  * @param bool $default Default
+//  * @return int
+//  */
+// function option_bool(string $key, bool $default = false): bool
+// {
+//     $value = option($key, 'no');
+//     return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : $default;
+// };
 
 /**
  * Get Default Currency
@@ -128,7 +128,7 @@ function format_date(null|string $time): string
  * */
 function admin_template(): string
 {
-    return 'admin/' . option('admin_template', 'default');
+    return 'admin/' . option('admin_template', 'bootstrap');
 };
 
 /**
@@ -162,14 +162,14 @@ function app_uri()
     return option('app_host', Url::base());
 };
 
-/**
- * Get App Name
- * @return string
- */
-function app_name()
-{
-    return option('app_name', 'Laika Bill Manager');
-};
+// /**
+//  * Get App Name
+//  * @return string
+//  */
+// function app_name()
+// {
+//     return option('app_name', 'Laika Bill Manager');
+// };
 
 /**
  * Get Data Limit
@@ -178,10 +178,8 @@ function app_name()
  */
 function data_limit(?int $default = null): int
 {
-    static $limit = null;
-    $default = $default && ($default > 0) ? $default : 20;
-    if ($limit === null) $limit = option_int('data_limit', $default ?? 20);
-    return $limit;
+    $default = ($default && ($default > 0)) ? $default : 20;
+    return option_int('data_limit', $default);
 }
 
 /**
@@ -192,7 +190,7 @@ function data_limit(?int $default = null): int
 function total_pages(int|string $totalRows): int
 {
     $totalRows = (int) $totalRows;
-    return $totalRows > data_limit() ? ceil($totalRows / data_limit()) : 1;
+    return $totalRows > data_limit() ? (int) ceil($totalRows / data_limit()) : 1;
 }
 
 /**
@@ -212,6 +210,7 @@ function validate_password(string $password): bool
  * @param string $message
  * @param array $data
  * @return array
+ * @deprecated
  */
 function make_return(bool $status, string $message, array $data = []): array
 {

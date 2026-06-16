@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
+use App\Model\StaffModel;
+use App\Model\ClientModel;
 use Laika\Core\Service\Csrf;
 use App\Model\ClientNoteModel;
-use App\Model\ClientModel;
-use App\Model\StaffModel;
+use Laika\Core\Service\Request;
+use Laika\Core\Service\Activity;
 use LBM\Exception\ActionException;
-use LBM\Service\Activity;
 use LANG;
 
 class ClientNote
@@ -130,13 +130,11 @@ class ClientNote
      */
     public function addNote(int|string $clientID): ?array
     {
-        if (!Request::isPost()) {
-            return null;
-        }
+        if (!Request::isPost()) return null;
 
         // Validate Client ID
         if (!Request::input('cid') || (Request::input('cid') != $clientID)) {
-            return ['message' => LANG::$invalidRequest, 'status' => false];
+            return response(false, LANG::$invalidRequest);
         }
 
         // Validate Form
@@ -149,9 +147,7 @@ class ClientNote
         ];
 
         Request::validate($rules, $messages);
-        if (!empty(Request::errors())) {
-            return ['message' => LANG::$generalError, 'status' => false];
-        }
+        if (!empty(Request::errors())) response(false, LANG::$generalError);
 
         // Insert Note & Log
         try {
@@ -166,26 +162,14 @@ class ClientNote
             $this->model->insert($data);
             // Insert Activity Log
             $client_href = "<a href=\"" . named('staff.client', ['client' => $clientID]) . "\">{$clientID}</a>";
-            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
-            $data = [
-                'type'      =>  'staff',
-                'id'        =>  $staff['sid'],
-                'short'     =>  LANG::$noteAdded,
-                'long'      =>  sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href)
-            ];
-            $log = Activity::addActivity($data);
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['username']}</a>";
+            $log = sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href);
+            Activity::author('staff', $staff['sid'])->log($log)->event('create');
 
-            if (!$log['status']) {
-                return ['message' => $log['message'], 'status' => $log['status']];
-            }
-            return ['message' => LANG::$noteCreateSuccessful, 'status' => true];
-
+            return response(true, LANG::$noteCreateSuccessful);
         } catch (\Throwable $th) {
-            if (config('env', 'debug')) {
-                throw new ActionException($th->getMessage());
-            }
-            return ['message' => LANG::$generalError, 'status' => false];
+            if (DEBUG) throw new ActionException($th->getMessage());
         }
-        return null;
+        return response(false, LANG::$generalError);
     }
 }

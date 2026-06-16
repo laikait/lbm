@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use LBM\Service\Activity;
 use App\Model\ClientModel;
 use App\Model\CountryModel;
 use App\Model\InvoiceModel;
@@ -23,6 +22,7 @@ use App\Model\ClientTokenModel;
 use App\Model\StaffStatusModel;
 use Laika\Core\Service\Request;
 use App\Model\ClientStatusModel;
+use Laika\Core\Service\Activity;
 use App\Model\InvoiceStatusModel;
 use App\Model\ClientContactModel;
 use App\Model\ClientServiceModel;
@@ -250,15 +250,13 @@ class Client
      */
     public function addClient(): ?array
     {
-        if (!Request::isPost()) {
-            return null;
-        }
+        if (!Request::isPost()) return null;
 
         $username = Request::input('username', '');
         $email = Request::input('email', '');
         $password = Request::input('password', '');
-        $username_minimum_length = option_int('username_minimum_length', 6);
-        $password_minimum_length = option_int('require_minimum_length', 6);
+        $username_minimum_length = option_int('username_min_length', 6);
+        $password_minimum_length = option_int('password_min_length', 6);
         $statuses = implode(',', array_column(client_statuses(), 'status_id'));
         $countries = implode(',', array_column(get_countries(), 'country_id'));
         $currencies = implode(',', array_column(get_currencies(), 'currency_id'));
@@ -276,11 +274,11 @@ class Client
         ];
 
         // Set Optional Rules If Exists
-        if (Request::input('company_name')) $rules['company_name'] = "regex:/^[\w\d\s\.]+$/i";
+        if (Request::input('company_name')) $rules['company_name'] = "regex:/^[\w\d\s\.\&]+$/i";
         if (Request::input('middle_name'))  $rules['middle_name'] = "alpha";
         if (Request::input('phone_code'))   $rules['phone_code'] = "regex:/^[\+\d\-]{1,4}$/";
         if (Request::input('phone_number')) $rules['phone_number'] = "regex:/^[\d\(\)\s\-]+$/";
-        if (Request::input('street'))       $rules['street'] = "regex:/^[\w\s\/\,\#\-]+$/";
+        if (Request::input('street'))       $rules['street'] = "regex:/^[\w\s\/\,\.\#\&\-]+$/";
         if (Request::input('city'))         $rules['city'] = "regex:/^[a-z\s\-]+$/i";
         if (Request::input('state'))        $rules['state'] = "regex:/^[a-z\s\-\/]+$/i";
         if (Request::input('postcode'))     $rules['postcode'] = "regex:/^[\w\s\-]+$/";
@@ -290,13 +288,13 @@ class Client
             'first_name.required'   =>  LANG::$requiredField,
             'last_name.required'    =>  LANG::$requiredField,
             'username.required'     =>  LANG::$requiredField,
-            'username.min'          =>  sprintf(LANG::$minLength, option_int('username_minimum_length', 6)),
+            'username.min'          =>  sprintf(LANG::$minLength, $username_minimum_length),
             'username.callback'     =>  LANG::$alreadyExists,
             'email.required'        =>  LANG::$requiredField,
             'email.email'           =>  LANG::$invalidEmail,
             'email.callback'        =>  LANG::$alreadyExists,
             'password.required'     =>  LANG::$requiredField,
-            'password.min'          =>  sprintf(LANG::$minLength, option_int('require_minimum_length', 6)),
+            'password.min'          =>  sprintf(LANG::$minLength, $password_minimum_length),
             'password.callback'     =>  LANG::$passwordPolicyMismatch,
             'cpassword.required'    =>  LANG::$requiredField,
             'cpassword.match'       =>  LANG::$confirmPasswordNotMatchd,
@@ -321,9 +319,7 @@ class Client
         Request::validate($rules, $messages);
 
         // Check Request Error
-        if (!empty(Request::errors())) {
-            return make_return(false, LANG::$invalidRequest, ['errors' => Request::errors()]);
-        }
+        if (!empty(Request::errors())) return response(false, LANG::$invalidRequest);
 
         // Insert New Client
         try {
@@ -353,27 +349,18 @@ class Client
             });
 
             // Insert Activity Log
-            $client_href = "<a href=\"" . named('staff.client', ['client' => $id]) . "\">{$id}</a>";
-            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
+            $client_href = "<a href=\"" . named('staff.client', ['client' => $id]) . "\">{$data['username']}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
+            $log = sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href);
 
-            $log_data = [
-                'type'  =>  'staff',
-                'id'    =>  $staff['sid'],
-                'short' =>  LANG::$noteAdded,
-                'long'  =>  sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href)
-            ];
+            Activity::author('staff', $staff['id'])->log($log)->event('create');
+            Activity::insert();
 
-            $log = Activity::addActivity($log_data);
-
-            return !$log['status'] ?
-                    make_return(false, $log['message']) :
-                    make_return(true, LANG::$newClientAdded, array_merge($data, ['client' => ['id' => $id, 'action' => 'create']]));
+            return response(true, LANG::$newClientAdded);
         } catch (\Throwable $th) {
-            if (config('env', 'debug', false)) {
-                throw new ActionException($th->getMessage());
-            }
-            return make_return(false, LANG::$generalError);
+            if (DEBUG) throw new ActionException($th->getMessage());
         }
+        return response(false, LANG::$generalError);
     }
 
     /**
@@ -383,56 +370,53 @@ class Client
      */
     public function modifyClient(int $cid): ?array
     {
-        if (!Request::isPost()) {
-            return null;
-        }
+        if (!Request::isPost()) return null;
 
         // Validate Form
         $rules = [
             'first_name'    =>  'required|regex:/^[\w\s\.]+$/i',
             'last_name'     =>  'required|regex:/^[\w\s\.]+$/i',
-            'status'        =>  'required|in:' . implode(',', array_column(client_statuses(), 'status_id')),
+            'status_relid'  =>  'required|in:' . implode(',', array_column(client_statuses(), 'status_id')),
             'currency'      =>  'required|in:' . implode(',', array_column(get_currencies(), 'currency_id'))
         ];
         // Set Optional Rules If Exists
-        if (Request::input('company_name')) $rules['company_name'] = 'regex:/^[\w\d\s\.]+$/i';
-        if (Request::input('middle_name'))  $rules['middle_name'] = 'alpha';
-        if (Request::input('phone_code'))   $rules['phone_code'] = 'regex:/^[\+\d\-]{1,4}$/';
-        if (Request::input('phone_number')) $rules['phone_number'] = 'regex:/^[\d\(\)\s\-]+$/';
-        if (Request::input('street'))       $rules['street'] = 'regex:/^[\w\s\/\,\#\-]+$/';
-        if (Request::input('city'))         $rules['city'] = 'regex:/^[a-z\s\-]+$/i';
-        if (Request::input('state'))        $rules['state'] = 'regex:/^[a-z\s\-\/]+$/i';
-        if (Request::input('postcode'))     $rules['postcode'] = 'regex:/^[\w\s\-]+$/';
-        if (Request::input('country'))      $rules['country'] = 'in:'.implode(',', array_column(get_countries(), 'country_id'));
+        if (Request::input('company_name')) $rules['company_name']  = 'regex:/^[\w\d\s\.\&]+$/i';
+        if (Request::input('middle_name'))  $rules['middle_name']   = 'alpha';
+        if (Request::input('phone_cc'))     $rules['phone_cc']      = 'regex:/^[\+\d\-]{1,4}$/';
+        if (Request::input('phone_number')) $rules['phone_number']  = 'regex:/^[\d\(\)\s\-]+$/';
+        if (Request::input('street'))       $rules['street']        = 'regex:/^[\w\s\/\,\#\-]+$/';
+        if (Request::input('city'))         $rules['city']          = 'regex:/^[a-z\s\-]+$/i';
+        if (Request::input('state'))        $rules['state']         = 'regex:/^[a-z\s\-\/]+$/i';
+        if (Request::input('postcode'))     $rules['postcode']      = 'regex:/^[\w\s\-]+$/';
+        if (Request::input('country'))      $rules['country']       = 'in:'.implode(',', array_column(get_countries(), 'country_id'));
 
         $messages = [
             'first_name.required'   =>  LANG::$requiredField,
             'first_name.regex'      =>  LANG::$unsupportedCharacter,
             'last_name.required'    =>  LANG::$requiredField,
             'last_name.regex'       =>  LANG::$unsupportedCharacter,
-            'status.required'       =>  LANG::$requiredField,
-            'status.in'             =>  LANG::$invalidOption,
+            'status_relid.required' =>  LANG::$requiredField,
+            'status_relid.in'       =>  LANG::$invalidOption,
             'currency.required'     =>  LANG::$requiredField,
             'currency.in'           =>  LANG::$invalidOption
         ];
         // Set Optional Messages If Exists
-        if (Request::input('company_name')) $messages['company_name.regex'] = LANG::$invalidInput;
-        if (Request::input('middle_name'))  $messages['middle_name.alpha'] = LANG::$invalidInput;
-        if (Request::input('phone_code'))   $messages['phone_code.regex'] = LANG::$invalidPhoneCode;
-        if (Request::input('phone_number')) $messages['phone_number.regex'] = LANG::$invalidPhoneNumber;
-        if (Request::input('street'))       $messages['street.regex'] = LANG::$invalidInput;
-        if (Request::input('city'))         $messages['city.regex'] = LANG::$invalidInput;
-        if (Request::input('state'))        $messages['state.regex'] = LANG::$invalidInput;
-        if (Request::input('postcode'))     $messages['postcode'] = LANG::$invalidInput;
-        if (Request::input('country'))      $messages['country.regex'] = LANG::$invalidOption;
+        if (Request::input('company_name')) $messages['company_name.regex'] =   LANG::$invalidInput;
+        if (Request::input('middle_name'))  $messages['middle_name.alpha']  =   LANG::$invalidInput;
+        if (Request::input('phone_cc'))     $messages['phone_cc.regex']     =   LANG::$invalidPhoneCode;
+        if (Request::input('phone_number')) $messages['phone_number.regex'] =   LANG::$invalidPhoneNumber;
+        if (Request::input('street'))       $messages['street.regex']       =   LANG::$invalidInput;
+        if (Request::input('city'))         $messages['city.regex']         =   LANG::$invalidInput;
+        if (Request::input('state'))        $messages['state.regex']        =   LANG::$invalidInput;
+        if (Request::input('postcode'))     $messages['postcode']           =   LANG::$invalidInput;
+        if (Request::input('country'))      $messages['country.regex']      =   LANG::$invalidOption;
 
         // Validate Request
         Request::validate($rules, $messages);
 
         // Check Request Error
-        if (!empty(Request::errors())) {
-            return ['message' => LANG::$invalidRequest, 'status' => false];
-        }
+        if (!empty(Request::errors())) return response(false, LANG::$invalidRequest);
+
         // Insert New Client
         try {
             $data = [
@@ -440,7 +424,7 @@ class Client
                 'first_name'        =>  (string) Request::input('first_name', ''),
                 'middle_name'       =>  (string) Request::input('middle_name', ''),
                 'last_name'         =>  (string) Request::input('last_name', ''),
-                'phone_cc'          =>  (string) Request::input('phone_code'),
+                'phone_cc'          =>  (string) Request::input('phone_cc'),
                 'phone_number'      =>  (string) Request::input('phone_number'),
                 'street'            =>  (string) Request::input('street'),
                 'city'              =>  (string) Request::input('city'),
@@ -448,17 +432,15 @@ class Client
                 'postcode'          =>  (string) Request::input('postcode'),
                 'country_relid'     =>  (int) Request::input('country'),
                 'currency_relid'    =>  (int) Request::input('currency'),
-                'status_relid'      =>  (int) Request::input('status')
+                'status_relid'      =>  (int) Request::input('status_relid')
             ];
 
-            ChangeLog::addExisting(get_client($cid));
-            ChangeLog::addNew($data);
-            $result = ChangeLog::getLogs();
+            // $client = get_client($cid);
+            $client = $this->single($cid);
+            $changes = Activity::changelog($client);
 
             // Validate Has Changes
-            if ($result['changes'] == []) {
-                return ['message' => LANG::$noChanges, 'status' => false];
-            }
+            if (empty($changes)) return response(false, LANG::$noChanges);
 
             // Update Client
             try {
@@ -466,35 +448,25 @@ class Client
                     $m->where(['cid' => $cid])->update($data);
                 });
             } catch (\Throwable $th) {
-                return ['message' => LANG::$generalError, 'status' => false];
+                if (DEBUG) throw new ActionException($th->getMessage());
             }
 
             // Activity Log
             $staff = current_staff();
 
-            // Insert Log
+            // Add Activity Log Event
             $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
-            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
+            $log = sprintf(LANG::$clientUpdatedByStaff, $client_href, $staff_href);
 
-            $log_data = [
-                'type'      =>  'staff',
-                'id'        =>  $staff['sid'],
-                'short'     =>  LANG::$update,
-                'long'      =>  sprintf(LANG::$clientUpdatedByStaff, $client_href, $staff_href),
-                'changes'   =>  $result['changes']
-            ];
+            Activity::author('staff', $staff['id'])->log($log)->event('modify');
+            Activity::insert();
 
-            $log = Activity::addActivity($log_data);
-
-            if (!$log['status']) {
-                return ['message' => $log['message'], 'status' => $log['status']];
-            }
-            return ['message' => LANG::$saveSuccess, 'status' => true];
-
+            return response(true, LANG::$saveSuccess);
         } catch (\Throwable $th) {
-            if (config('env', 'debug')) throw new ActionException($th->getMessage());
+            if (DEBUG) throw new ActionException($th->getMessage());
         }
-        return ['message' => LANG::$generalError, 'status' => false];
+        return response(false, LANG::$generalErro);
     }
 
     /**
@@ -506,11 +478,9 @@ class Client
     public function resetPasswordByStaff(int $cid, ?int $contact_id = null): ?array
     {
         // Check Request is Post
-        if (!Request::isPost()) {
-            return null;
-        }
+        if (!Request::isPost()) return null;
 
-        $expire_ttl = option('client_token_expire_ttl', '1800');
+        $expire_ttl = option('token_lifetime', '1800');
 
         // Reset Password
         try {
@@ -522,37 +492,98 @@ class Client
                 'expires'               =>  Date::modify("+{$expire_ttl} seconds")->format('Y-m-d H:i:s')
             ];
 
-            $this->token_model->transaction(function (ClientTokenModel $m) use ($cid, $data, $contact_id) {
+            // Insert Password Reset Token
+            $tx = $this->token_model->transaction(function (ClientTokenModel $m) use ($cid, $data, $contact_id) {
+                $realtime = Date::now()->format('Y-m-d H:i:s');
+
+                is_null($contact_id) ?
+                    $m->where(['type' => 'password_reset', 'client_relid' => $cid])
+                        ->isNull('client_contact_relid')
+                        ->update(['expires' => $realtime]) :
+                    $m->where(['type' => 'password_reset', 'client_relid' => $cid, 'client_contact_relid' => $contact_id])
+                        ->isNull('client_contact_relid')
+                        ->update(['expires' => $realtime]);
+
                 $id = $m->insert($data);
-                // Add Activity Log
-                $staff = current_staff();
-
-                $contact_href = $contact_id ? "<a href=\"" . named('staff.client.contact', ['client' => $cid, 'contact' => $contact_id]) . "\">{$contact_id}</a>" : "";
-                $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
-                $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
-                $long = $contact_id ?
-                        sprintf(LANG::$clientContactPasswordResetSuccess, $client_href, $contact_href, $staff_href) :
-                        sprintf(LANG::$clientPasswordResetSuccess, $client_href, $staff_href);
-
-                $log_data = [
-                    'type'  =>  'staff',
-                    'id'    =>  $staff['sid'],
-                    'short' =>  LANG::$passwordResetLinkSent,
-                    'long'  =>  $long
-                ];
-
-                $log = Activity::addActivity($log_data);
-
-                if (!$log['status']) {
-                    return ['message' => $log['message'], 'status' => $log['status']];
-                }
-                return make_return(true, LANG::$passwordResetLinkSent, ['token' => ['id' => $id, 'action' => 'create']]);
             });
-
         } catch (\Throwable $th) {
-            if (config('env', 'debug', false)) throw new ActionException($th->getMessage());
+            if (DEBUG) throw new ActionException($th->getMessage());
+            return response(false, LANG::$resetPasswordFailed);
         }
-        return make_return(false, LANG::$resetPasswordFailed);
+
+        // Add Activity Log
+        $staff = current_staff();
+
+        $contact_href = $contact_id ? "<a href=\"" . named('staff.client.contact', ['client' => $cid, 'contact' => $contact_id]) . "\">{$contact_id}</a>" : "";
+        $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
+        $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
+        $log = $contact_id ?
+                sprintf(LANG::$clientContactPasswordResetSuccess, $client_href, $contact_href, $staff_href) :
+                sprintf(LANG::$clientPasswordResetSuccess, $client_href, $staff_href);
+        
+        // Insert Activity
+        Activity::author('staff', $staff['id'])->log($log)->event('create');
+
+        Activity::insert();
+        return response(true, LANG::$passwordResetLinkSent);
+    }
+
+    /**
+     * Reset Security Code By Staff
+     * @param int $cid
+     * @param ?int $contact_id
+     * @return ?array
+     */
+    public function resetSecurityCodeByStaff(int $cid, ?int $contact_id = null): ?array
+    {
+        // Check Request is Post
+        if (!Request::isPost()) return null;
+
+        $expire_ttl = option('token_lifetime', '1800');
+
+        // Reset Security Code
+        try {
+            $data = [
+                'token'                 =>  bin2hex(random_bytes(2)),
+                'type'                  =>  'support',
+                'client_relid'          =>  $cid,
+                'client_contact_relid'  =>  $contact_id
+            ];
+
+            // Insert Security Code
+            $id = $this->token_model->transaction(function (ClientTokenModel $m) use ($cid, $data, $contact_id) {
+                $realtime = Date::now()->format('Y-m-d H:i:s');
+                is_null($contact_id) ?
+                    $m->where(['type' => 'support', 'client_relid' => $cid])
+                        ->isNull('client_contact_relid')
+                        ->update(['expires' => $realtime]) :
+                    $m->where(['type' => 'support', 'client_relid' => $cid, 'client_contact_relid' => $contact_id])
+                        ->isNull('client_contact_relid')
+                        ->update(['expires' => $realtime]);
+
+                return $m->insert($data);
+            });
+        } catch (\Throwable $th) {
+            if (DEBUG) throw new ActionException($th->getMessage());
+            return response(false, LANG::$resetSecurityCodeFailed);
+        }
+
+        // Add Activity Log
+        $staff = current_staff();
+
+        $contact_href = $contact_id ? "<a href=\"" . named('staff.client.contact', ['client' => $cid, 'contact' => $contact_id]) . "\">{$contact_id}</a>" : "";
+        $client_href = "<a href=\"" . named('staff.client', ['client' => $cid]) . "\">{$cid}</a>";
+        $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
+        $log = $contact_id ?
+                sprintf(LANG::$clientContactSecurityCodeResetSuccess, $client_href, $contact_href, $staff_href) :
+                sprintf(LANG::$clientSecurityCodeResetSuccess, $client_href, $staff_href);
+        
+        // Insert Activity
+        Activity::author('staff', $staff['id'])->log($log)->event('modify');
+
+        Activity::insert();
+
+        return response(true, LANG::$resetSecurityCodeSuccessful);
     }
 
     ##############################################################################################

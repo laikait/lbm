@@ -11,21 +11,20 @@ declare(strict_types=1);
 
 namespace LBM\Support;
 
-use Laika\Core\Service\Redirect;
-use Laika\Core\Service\Request;
-use Laika\Core\Service\Local;
-use Laika\Core\Service\Date;
-use Laika\Core\Service\Csrf;
-use Laika\Session\Relay\Session;
+use Laika\Core\Service\{Redirect, Request, Local, Date, Csrf, DB, Url};
+use Laika\Session\Service\Session;
 use Laika\Model\Connection;
 use LANG;
 
 class Initiate
 {
+    /** @var string $local */
+    private string $local;
+
     public function __construct()
     {
         // Initiate Database
-        if (!Connection::has()) Connection::add(config('database', 'default'));
+        DB::run();
 
         // Default Timezone & Format
         Date::setFormat(option('datetime_format', 'Y-m-d H:i:s'))->setAppTimezone(option('time_zone', 'UTC'));
@@ -36,18 +35,15 @@ class Initiate
 
     /**
      * Initiate Defaults
-     * @param ?string $type
      * @return void
      */
-    public function common(?string $type = null): void
+    public function common(): void
     {
         // Initiate Session
-        Session::config(Connection::get());
-
-        Session::for($type);
+        DB::session();
 
         // Initiate Local
-        switch (strtolower((string) $type)) {
+        switch (strtolower((string) Url::segment(1))) {
             case strtolower(ADMIN):
                 Local::set(option('admin_local', 'en'));
                 Local::setPath('admin');

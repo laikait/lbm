@@ -10,8 +10,7 @@
 
 declare(strict_types=1);
 
-use LBM\Service\AuthStaff;
-use Laika\Core\Service\Request;
+use Laika\Core\Service\{Request, StaffAuth};
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -20,9 +19,7 @@ use Laika\Core\Service\Request;
  */
 function current_staff(): ?array
 {
-    $staff = null;
-    if ($staff === null) $staff = AuthStaff::user();
-    return $staff;
+    return StaffAuth::user();
 }
 
 /*================================= ACCESS =================================*/
@@ -33,14 +30,24 @@ function current_staff(): ?array
  */
 function staff_has_access(string $access): bool
 {
-    $user = current_staff();
-    $parts = explode('.', $access);
-    $name = $parts[0];
-    if (!isset($parts[1])) {
-        return false;
+    static $accesses = [];
+    $key = strtolower($access);
+
+    // Validate Parameter
+    if (!preg_match('/^\w+\.\w+$/i', $key)) {
+        throw new InvalidArgumentException("Invalid Parameter [{$access}] in Function " . __FUNCTION__ . ". Example: 'staff.create'");
     }
-    $action = strtolower($parts[1]);
-    return $user['permissions'][$name][$action] ?? false;
+
+    if (!array_key_exists($key, $accesses)) {
+
+        [$name, $action] = explode('.', $key, 2);
+
+        $user = current_staff();
+
+        $accesses[$key] = $user['permissions'][$name][$action] ?? false;
+    }
+
+    return $accesses[$key];
 }
 
 /**

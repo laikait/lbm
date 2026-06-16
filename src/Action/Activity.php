@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\ActivityLogModel;
+use Laika\Model\Model;
+use App\Model\StaffModel;
+use App\Model\ClientModel;
 use Laika\Core\Service\Visitor;
 use LBM\Exception\ActionException;
 use InvalidArgumentException;
@@ -19,12 +21,20 @@ use LANG;
 
 class Activity
 {
-    /** @var ActivityLogModel $model */
-    protected ActivityLogModel $model;
+    /** @var Model $model */
+    protected Model $model;
+
+    /** @var ClientModel $cmodel */
+    protected ClientModel $cmodel;
+
+    /** @var StaffModel $smodel */
+    protected StaffModel $smodel;
 
     public function __construct()
     {
-        $this->model = new ActivityLogModel();
+        $this->model = new Model();
+        $this->cmodel = new ClientModel();
+        $this->smodel = new StaffModel();
     }
 
     /**
@@ -34,7 +44,7 @@ class Activity
      */
     public function single(int $id): array
     {
-        return $this->model->select()->where(['id' => $id])->first();
+        return $this->model->table('activities')->select()->where(['log_id' => $id])->first();
     }
 
     /**
@@ -44,71 +54,118 @@ class Activity
      */
     public function latest(?int $limit = null): array
     {
-        return $this->model->order($this->model->id, 'DESC')->limit(data_limit($limit))->get();
+        return $this->model->table('activities')->order('log_id', 'DESC')->limit(data_limit($limit))->get();
     }
 
     /**
      * Get Activities By Type
      * @param string $type Activity Creator Type. Accepted Values: 'client', 'staff', 'system'
+     * @param ?int $limit Latest Data Limit. Default is NULL For Application Data Limit
      * @return array
      */
-    public function byType(string $type): array
+    public function byType(string $type, ?int $limit): array
     {
-        return $this->model->where(['author_type' => $type])->order($this->model->id, 'DESC')->get();
+        $type = strtolower($type);
+        return match ($type) {
+            'client' => $this->model
+                        ->table('activities')
+                        ->select($this->clientColumns())
+                        ->where(["{$this->model->table}.author_type" => 'client'])
+                        ->join($this->cmodel->table, "{$this->model->table}.author_id", '=', "{$this->cmodel->table}.cid")
+                        ->order("{$this->model->table}.log_id", 'DESC')
+                        ->limit(data_limit($limit))
+                        ->get(),
+            'staff' => $this->model
+                        ->table('activities')
+                        ->select($this->staffColumns())
+                        ->where(['author_type' => 'staff'])
+                        ->join($this->smodel->table, "{$this->model->table}.author_id", '=', "{$this->smodel->table}.sid")
+                        ->order("{$this->model->table}.log_id", 'DESC')
+                        ->limit(data_limit($limit))
+                        ->get(),
+            'system' => $this->model->where(['author_type' => 'system'])->order($this->model->id, 'DESC')->get(),
+            default => throw new InvalidArgumentException('Invalid Activity Type! Accepted Values: client, staff, system')
+        };
     }
 
     /**
      * Get Activities By Type
      * @param string $type Activity Type. Accepted Values: 'client', 'staff', 'system'
      * @param ?int $id Creator ID. Example: Client ID, Staff ID, Default is Null for System Activities
+     * @param ?int $limit Latest Data Limit. Default is NULL For Application Data Limit
      * @return array
      */
-    public function byTypeAndId(string $type, ?int $id = null): array
+    public function byTypeAndId(string $type, ?int $id = null, ?int $limit = null): array
     {
-        return $this->model->where(['author_type' => $type, 'author_id' => $id])->order($this->model->id, 'DESC')->get();
+        $type = strtolower($type);
+
+        return match ($type) {
+            'client' => $this->model
+                        ->table('activities')
+                        ->select($this->clientColumns())
+                        ->where(["{$this->model->table}.author_type" => 'client', "{$this->model->table}.author_id" => $id])
+                        ->join($this->cmodel->table, "{$this->model->table}.author_id", '=', "{$this->cmodel->table}.cid")
+                        ->order("{$this->model->table}.log_id", 'DESC')
+                        ->limit(data_limit($limit))
+                        ->get(),
+            'staff' => $this->model
+                        ->table('activities')
+                        ->select($this->staffColumns())
+                        ->where(["{$this->model->table}.author_type" => 'staff', "{$this->model->table}.author_id" => $id])
+                        ->join($this->smodel->table, "{$this->model->table}.author_id", '=', "{$this->smodel->table}.sid")
+                        ->order("{$this->model->table}.log_id", 'DESC')
+                        ->limit(data_limit($limit))
+                        ->get(),
+            'system' => $this->model
+                        ->table('activities')
+                        ->where(["{$this->model->table}.author_type" => 'system', "{$this->model->table}.author_id" => null])
+                        ->order("{$this->model}.log_id", 'DESC')->get(),
+            default => throw new InvalidArgumentException('Invalid Activity Type! Accepted Values: client, staff, system')
+        };
+    }
+
+    ################################################################################################
+    ####################################### INTERNAL METHODS #######################################
+    ################################################################################################
+    /**
+     * Get Staff Columns for Activity Log
+      * @return string[]
+     */
+    protected function staffColumns(): array
+    {
+        return [
+            // Log Columns
+            "{$this->model->table}.log_id",
+            "{$this->model->table}.author_type",
+            "{$this->model->table}.author_id",
+            "{$this->model->table}.event",
+            "{$this->model->table}.log",
+            "{$this->model->table}.changes",
+            "{$this->model->table}.from_ip",
+            "{$this->model->table}.created_at as log_created_at",
+            // Staff Columns
+            "{$this->smodel->table}.username",
+        ];
     }
 
     /**
-     * Insert Activity
-      * @param array{type:string, id?:?int, short:string, long:string, changes?:array<string,array{old:mixed,new:mixed}>} $data
-      * @return array{message:string, status:bool}
-      * @throws InvalidArgumentException
+     * Get Client Columns for Activity Log
+      * @return string[]
      */
-    public function addActivity(array $data): array
+    protected function clientColumns(): array
     {
-        if (empty($data['type']) || empty($data['short']) || empty($data['long'])) {
-            throw new InvalidArgumentException('Activity Type, Short Description and Long Description are required! Keys: type, short, long');
-        }
-
-        if (!in_array(strtolower($data['type']), ['client', 'staff', 'system'])) {
-            throw new InvalidArgumentException('Invalid Activity Type! Accepted Values: client, staff, system');
-        }
-
-        // Prepare Data
-        $type = strtolower($data['type']);
-        if ($type !== 'system' && empty($data['id'])) {
-            throw new InvalidArgumentException('Creator ID is required for Client and Staff Activities! Key: id');
-        }
-
-        try {
-            // Get Old Data for Change Log
-            $args = [
-                'author_type'  =>  $type,
-                'author_id'    =>  $data['id'] ?? null,
-                'action_short'  =>  $data['short'] ?? '',
-                'action_long'   =>  $data['long'] ?? '',
-                'changes'       =>  serialize($data['changes'] ?? []),
-                'log_from_ip'   =>  Visitor::ip()
-            ];
-            // Insert Log
-            $id = $this->model->transaction(function ($m) use ($args) {
-                $m->insert($args);
-            });
-
-            return make_return(true, LANG::$logCreateSuccessful, ['log' => ['id' => $id,'action' => 'create']]);
-        } catch (\Exception $e) {
-            if (config('env', 'debug', false)) throw new ActionException($e->getMessage());
-        }
-        return make_return(false, LANG::$logCreateFailed);
+        return [
+            // Log Columns
+            "{$this->model->table}.log_id",
+            "{$this->model->table}.author_type",
+            "{$this->model->table}.author_id",
+            "{$this->model->table}.event",
+            "{$this->model->table}.log",
+            "{$this->model->table}.changes",
+            "{$this->model->table}.from_ip",
+            "{$this->model->table}.created_at as log_created_at",
+            // Staff Columns
+            "{$this->cmodel->table}.username",
+        ];
     }
 }

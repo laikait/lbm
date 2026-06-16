@@ -12,7 +12,7 @@ namespace LBM\Service;
 use Laika\Core\Relay\Relay;
 
 /**
- * @method static void common(?string $type = null)
+ * @method static void common()
  */
 class Initiate extends Relay
 {

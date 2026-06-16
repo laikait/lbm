@@ -23,6 +23,7 @@ use Laika\Core\Relay\Relay;
  * @method static ?array addClient()
  * @method static ?array modifyClient(int $cid)
  * @method static ?array resetPasswordByStaff(int $cid)
+ * @method static ?array resetSecurityCodeByStaff(int $cid)
  */
 class Client extends Relay
 {
