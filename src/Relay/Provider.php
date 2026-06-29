@@ -22,7 +22,7 @@ use LBM\Action\AuthStaff;
 use LBM\Action\AuthClient;
 use LBM\Action\ClientNote;
 use LBM\Action\ClientContact;
-use Laika\Core\Relay\RelayProvider;
+use Laika\Relay\RelayProvider;
 
 // Supports
 use LBM\Support\Initiate;

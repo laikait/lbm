@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace LBM\Service;
 
-use Laika\Core\Relay\Relay;
+use Laika\Relay\Relay;
 
 /**
  * @method static array     list() Get All Currencies

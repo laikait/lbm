@@ -13,7 +13,7 @@ use App\Model\StaffStatusModel;
 use App\Model\ClientStatusModel;
 use Laika\Core\Interfaces\MiddlewareInterface;
 use Laika\Core\Exceptions\MiddlewareException;
-use Laika\Core\Service\{Url, Vault, Redirect, Request, Visitor, StaffAuth, ClientAuth};
+use Laika\Service\{Url, Vault, Redirect, Request, Visitor, StaffAuth, ClientAuth};
 use LANG;
 // use Laika\Core\Service\{StaffAuth, ClientAuth, Url};
 
@@ -151,7 +151,7 @@ final class Auth implements MiddlewareInterface
             if (DEBUG) throw new MiddlewareException("Login Log Insert Failed! {$th->getMessage()}");
         }
         // Make Login Log
-        Redirect::with(LANG::$welcome, true)->to($this->guards[$this->slug]['dash']);
+        Redirect::with(sprintf(LANG::$welcome, $user['first_name']), true)->to($this->guards[$this->slug]['dash']);
     }
 
     /**
