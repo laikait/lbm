@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace LBM\Middleware;
 
 use LBM\Service\Initiate;
-use App\Model\StaffModel;
-use App\Model\ClientModel;
-use App\Model\LoginLogModel;
-use App\Model\StaffRoleModel;
-use App\Model\StaffStatusModel;
-use App\Model\ClientStatusModel;
+use LBM\Model\StaffModel;
+use LBM\Model\ClientModel;
+use LBM\Model\LoginLogModel;
+use LBM\Model\StaffRoleModel;
+use LBM\Model\StaffStatusModel;
+use LBM\Model\ClientStatusModel;
 use Laika\Core\Interfaces\MiddlewareInterface;
 use Laika\Core\Exceptions\MiddlewareException;
-use Laika\Service\{Url, Vault, Redirect, Request, Visitor, StaffAuth, ClientAuth};
+use Laika\Service\{Url, Vault, Redirect, Request, Visitor, Auth as AuthCore};
 use LANG;
 // use Laika\Core\Service\{StaffAuth, ClientAuth, Url};
 
@@ -28,16 +28,13 @@ final class Auth implements MiddlewareInterface
     public CONST INVALID_OS = 6;
 
     /** @var bool Is Admin Slug */
-    private bool $is_admin_slug = false;
+    private bool $admin_slug = false;
 
     /** @var bool Is Client Slug */
-    private bool $is_client_slug = false;
+    private bool $client_slug = false;
 
-    /** @var string Redirect Dashboard Named */
-    private string $dashboard;
-
-    /** @var array Acceptable Guards Class List */
-    private array $guards;
+    /** @var array Named Redirects */
+    private array $redirects;
 
     /** @var string Current Slug */
     private string $slug;
@@ -54,15 +51,18 @@ final class Auth implements MiddlewareInterface
         Initiate::common();
 
         $this->slug = strtolower(Url::segment(1));
-        $this->dashboard = 'home';
-        $this->guards = [
+        if ($this->slug == strtolower(ADMIN)) {
+            AuthCore::guard('staff');
+        } elseif ($this->slug == strtolower(PANEL)) {
+            AuthCore::guard('client');
+        }
+
+        $this->redirects = [
             strtolower(ADMIN)   =>  [
-                'auth'  =>  StaffAuth::class,
                 'login' =>  'staff.login',
                 'dash'  =>  'staff.dashboard',
             ],
             strtolower(PANEL)   =>  [
-                'auth'  =>  ClientAuth::class,
                 'login' =>  'client.login',
                 'dash'  =>  'client.dashboard',
             ]
@@ -131,7 +131,7 @@ final class Auth implements MiddlewareInterface
         // Login
         unset($user['password']); // Unset password
         try {
-            $this->guards[$this->slug]['auth']::login($user['id'], $user);
+            AuthCore::login($user['id'], $user);
         } catch (\Throwable $th) {
             if (DEBUG) throw new MiddlewareException("Login Failed! {$th->getMessage()}");
             return;
@@ -139,19 +139,22 @@ final class Auth implements MiddlewareInterface
         // Log Data
         $lmodel = new LoginLogModel();
         try {
-            $lmodel->transaction(function (loginlogModel $m) {
-                $m->insert([
-                    'type'          =>  $this->guards[$this->slug]['auth']::guard(),
-                    'relid'         =>  $this->guards[$this->slug]['auth']::id(),
-                    'ip_address'    =>  Visitor::ip(),
-                    'user_agent'    =>  Visitor::userAgent()
-                ]);
+            $data = [
+                'type'          =>  AuthCore::type(),
+                'relid'         =>  AuthCore::id(),
+                'ip_address'    =>  Visitor::ip(),
+                'browser'       =>  Visitor::browser(),
+                'os'            =>  Visitor::os(),
+                'user_agent'    =>  Visitor::userAgent(),
+            ];
+            $lmodel->transaction(function (loginlogModel $m) use ($data) {
+                $m->insert($data);
             });
         } catch (\Throwable $th) {
             if (DEBUG) throw new MiddlewareException("Login Log Insert Failed! {$th->getMessage()}");
         }
         // Make Login Log
-        Redirect::with(sprintf(LANG::$welcome, $user['first_name']), true)->to($this->guards[$this->slug]['dash']);
+        Redirect::with(sprintf(LANG::$welcome, $user['first_name']), true)->to($this->redirects[$this->slug]['dash']);
     }
 
     /**
@@ -160,10 +163,10 @@ final class Auth implements MiddlewareInterface
      */
     private function validate(): void
     {
-        $data = $this->guards[$this->slug]['auth']::data();
+        $data = AuthCore::data();
         if (!$data['success'] || ($data['message'] !== AUTH::AUTHORIZED)) {
-            $this->guards[$this->slug]['auth']::logout();
-            Redirect::with(LANG::$unauthenticated, false)->to($this->guards[$this->slug]['login']);
+            AuthCore::logout();
+            Redirect::with(LANG::$unauthenticated, false)->to($this->redirects[$this->slug]['login']);
         }
     }
 
@@ -174,9 +177,9 @@ final class Auth implements MiddlewareInterface
     private function checkSessionExists(): void
     {
         // Check Already Logged-in
-        $data = $this->guards[$this->slug]['auth']::data();
+        $data = AuthCore::data();
         if (isset($data['success'], $data['message']) && $data['success'] && $data['message'] === Auth::AUTHORIZED) {
-            Redirect::with(LANG::$alreadyExists, true)->to($this->guards[$this->slug]['dash']);
+            Redirect::with(LANG::$alreadyExists, true)->to($this->redirects[$this->slug]['dash']);
         }
         return;
     }

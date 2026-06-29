@@ -11,19 +11,19 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
-use App\Model\ClientModel;
+use Laika\Service\Request;
+use LBM\Model\ClientModel;
 use LBM\Exception\ActionException;
-use App\Model\ClientNoteModel;
-use App\Model\ClientTokenModel;
-use App\Model\StaffStatusModel;
-use App\Model\ClientStatusModel;
-use App\Model\ClientContactModel;
-use App\Model\ClientServiceModel;
-use App\Model\ClientServiceNoteModel;
-use App\Model\ClientServiceAddonModel;
-use App\Model\ClientServiceStatusModel;
-use App\Model\ClientServiceConfigValueModel;
+use LBM\Model\ClientNoteModel;
+use LBM\Model\ClientTokenModel;
+use LBM\Model\StaffStatusModel;
+use LBM\Model\ClientStatusModel;
+use LBM\Model\ClientContactModel;
+use LBM\Model\ClientServiceModel;
+use LBM\Model\ClientServiceNoteModel;
+use LBM\Model\ClientServiceAddonModel;
+use LBM\Model\ClientServiceStatusModel;
+use LBM\Model\ClientServiceConfigValueModel;
 
 class ClientContact
 {

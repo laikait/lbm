@@ -11,12 +11,12 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\StaffModel;
-use App\Model\ClientModel;
-use Laika\Core\Service\Csrf;
-use App\Model\ClientNoteModel;
-use Laika\Core\Service\Request;
-use Laika\Core\Service\Activity;
+use Laika\Service\CSRF;
+use LBM\Model\StaffModel;
+use LBM\Model\ClientModel;
+use LBM\Model\ClientNoteModel;
+use Laika\Service\Request;
+use Laika\Service\Activity;
 use LBM\Exception\ActionException;
 use LANG;
 

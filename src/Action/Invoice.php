@@ -11,15 +11,15 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\ClientModel;
-use App\Model\InvoiceModel;
-use App\Model\CurrencyModel;
-use App\Model\InvoiceItemModel;
-use Laika\Core\Service\Request;
-use App\Model\InvoiceStatusModel;
-use App\Model\PaymentGatewayModel;
+use LBM\Model\ClientModel;
+use LBM\Model\InvoiceModel;
+use LBM\Model\CurrencyModel;
+use LBM\Model\InvoiceItemModel;
+use Laika\Service\Request;
+use LBM\Model\InvoiceStatusModel;
+use LBM\Model\PaymentGatewayModel;
 use LBM\Exception\ActionException;
-use App\Model\InvoiceItemTypeModel;
+use LBM\Model\InvoiceItemTypeModel;
 
 class Invoice
 {

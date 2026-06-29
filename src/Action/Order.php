@@ -11,15 +11,15 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
-use Laika\Core\Service\Date;
-use App\Model\OrderModel;
-use App\Model\OrderStatusModel;
-use App\Model\PromoCodeModel;
-use App\Model\ClientModel;
-use App\Model\CurrencyModel;
-use App\Model\InvoiceModel;
-use App\Model\InvoiceStatusModel;
+use Laika\Service\Request;
+use Laika\Service\Date;
+use LBM\Model\OrderModel;
+use LBM\Model\OrderStatusModel;
+use LBM\Model\PromoCodeModel;
+use LBM\Model\ClientModel;
+use LBM\Model\CurrencyModel;
+use LBM\Model\InvoiceModel;
+use LBM\Model\InvoiceStatusModel;
 
 class Order
 {

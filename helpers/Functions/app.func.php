@@ -12,49 +12,9 @@
 declare(strict_types=1);
 
 // use LBM\Support\Option;
-use Laika\Core\Service\Url;
-use Laika\Core\Service\Date;
-use Laika\Core\Service\Math;
-use LBM\Service\Currency;
-use LBM\Service\PasswordValidator;
+use Laika\Service\{Math, Date, Url};
+use LBM\Service\{Currency, PasswordValidator};
 
-// /**
-//  * Get App DB Option
-//  * @param string $key DB Option entity
-//  * @param mixed $default Option Default Value
-//  * @return string
-//  */
-// function option(string $key, mixed $default = '')
-// {
-//     static $options = [];
-//     if (!array_key_exists($key, $options)) {
-//         $options[$key] = Option::get($key, $default);
-//     }
-//     return $options[$key];
-// };
-
-// /**
-//  * Get App DB Option as Int
-//  * @param string $key DB Option entity
-//  * @return int
-//  */
-// function option_int(string $key, int $default = 0): int
-// {
-//     $value = option($key, $default);
-//     return preg_match('/^[0-9]+$/i', (string) $value) ? (int) $value : $default;
-// };
-
-// /**
-//  * Get App DB Option as Bool
-//  * @param string $key DB Option entity
-//  * @param bool $default Default
-//  * @return int
-//  */
-// function option_bool(string $key, bool $default = false): bool
-// {
-//     $value = option($key, 'no');
-//     return preg_match('/^(yes|enabled|enable|true|on|1)$/i', $value) ? true : $default;
-// };
 
 /**
  * Get Default Currency
@@ -132,25 +92,23 @@ function admin_template(): string
 };
 
 /**
- * App Logo
- * @param ?string $key Option Table lkey column. Example: admin.logo app.logo
- * @return string
+ * App Icon
+ * @return void
  */
-function app_icon(?string $key = null): string
+function app_icon(): void
 {
-    $name = option($key ?: 'app_icon', 'icon.png');
-    return named('app.src', ['path' => "/img/{$name}"]);
+    $name = option('app_icon', 'icon.png');
+    asset("assets/img/{$name}");
 };
 
 /**
  * App Logo
- * @param ?string $key Option Table lkey column. Example: admin.logo app.logo
- * @return string
+ * @return void
  */
-function app_logo(?string $key = null): string
+function app_logo(): void
 {
-    $name = option($key ?: 'app_logo', 'logo.png');
-    return named('app.src', ['name' => "/img/{$name}"]);
+    $name = option('app_logo', 'logo.png');
+    asset("assets/img/{$name}");
 };
 
 /**

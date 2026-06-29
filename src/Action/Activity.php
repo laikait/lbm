@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace LBM\Action;
 
 use Laika\Model\Model;
-use App\Model\StaffModel;
-use App\Model\ClientModel;
-use Laika\Core\Service\Visitor;
+use LBM\Model\StaffModel;
+use LBM\Model\ClientModel;
+use Laika\Service\Visitor;
 use LBM\Exception\ActionException;
 use InvalidArgumentException;
 use LANG;

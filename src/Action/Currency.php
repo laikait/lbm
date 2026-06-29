@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\CurrencyModel;
-use Laika\Core\Service\Math;
+use LBM\Model\CurrencyModel;
+use Laika\Service\Math;
 
 class Currency
 {

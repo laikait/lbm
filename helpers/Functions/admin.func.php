@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-use Laika\Core\Service\{Request, StaffAuth};
+use Laika\Service\{Request, Auth};
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -19,7 +19,8 @@ use Laika\Core\Service\{Request, StaffAuth};
  */
 function current_staff(): ?array
 {
-    return StaffAuth::user();
+    Auth::guard('staff');
+    return Auth::user();
 }
 
 /*================================= ACCESS =================================*/

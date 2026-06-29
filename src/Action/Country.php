@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\CountryModel;
+use LBM\Model\CountryModel;
 
 class Country
 {

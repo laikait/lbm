@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
-use App\Model\StaffModel;
-use App\Model\StaffRoleModel;
-use App\Model\StaffStatusModel;
+use Laika\Service\Request;
+use LBM\Model\StaffModel;
+use LBM\Model\StaffRoleModel;
+use LBM\Model\StaffStatusModel;
 use LBM\Exception\ActionException;
 
 class Staff

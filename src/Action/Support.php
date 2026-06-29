@@ -11,16 +11,16 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use Laika\Core\Service\Request;
-use App\Model\StaffModel;
-use App\Model\ClientModel;
-use App\Model\SupportTicketModel;
-use App\Model\SupportTicketTagModel;
-use App\Model\SupportDepartmentModel;
-use App\Model\SupportTicketStatusModel;
-use App\Model\SupportTicketReplyModel;
-use App\Model\SupportTicketPriorityModel;
-use App\Model\SupportCannedResponseModel;
+use Laika\Service\Request;
+use LBM\Model\StaffModel;
+use LBM\Model\ClientModel;
+use LBM\Model\SupportTicketModel;
+use LBM\Model\SupportTicketTagModel;
+use LBM\Model\SupportDepartmentModel;
+use LBM\Model\SupportTicketStatusModel;
+use LBM\Model\SupportTicketReplyModel;
+use LBM\Model\SupportTicketPriorityModel;
+use LBM\Model\SupportCannedResponseModel;
 use LBM\Exception\ActionException;
 
 class Support

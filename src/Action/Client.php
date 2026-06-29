@@ -11,27 +11,27 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
-use App\Model\ClientModel;
-use App\Model\CountryModel;
-use App\Model\InvoiceModel;
-use App\Model\CurrencyModel;
-use Laika\Core\Service\Date;
-use Laika\Core\Service\Vault;
-use App\Model\ClientNoteModel;
-use App\Model\ClientTokenModel;
-use App\Model\StaffStatusModel;
-use Laika\Core\Service\Request;
-use App\Model\ClientStatusModel;
-use Laika\Core\Service\Activity;
-use App\Model\InvoiceStatusModel;
-use App\Model\ClientContactModel;
-use App\Model\ClientServiceModel;
-use Laika\Core\Service\ChangeLog;
+use LBM\Model\ClientModel;
+use LBM\Model\CountryModel;
+use LBM\Model\InvoiceModel;
+use LBM\Model\CurrencyModel;
+use Laika\Service\Date;
+use Laika\Service\Vault;
+use LBM\Model\ClientNoteModel;
+use LBM\Model\ClientTokenModel;
+use LBM\Model\StaffStatusModel;
+use Laika\Service\Request;
+use LBM\Model\ClientStatusModel;
+use Laika\Service\Activity;
+use LBM\Model\InvoiceStatusModel;
+use LBM\Model\ClientContactModel;
+use LBM\Model\ClientServiceModel;
+use Laika\Service\ChangeLog;
 use LBM\Exception\ActionException;
-use App\Model\ClientServiceNoteModel;
-use App\Model\ClientServiceAddonModel;
-use App\Model\ClientServiceStatusModel;
-use App\Model\ClientServiceConfigValueModel;
+use LBM\Model\ClientServiceNoteModel;
+use LBM\Model\ClientServiceAddonModel;
+use LBM\Model\ClientServiceStatusModel;
+use LBM\Model\ClientServiceConfigValueModel;
 use LANG;
 
 class Client

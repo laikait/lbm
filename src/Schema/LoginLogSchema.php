@@ -23,6 +23,8 @@ class LoginLogSchema
             $t->enum('type', ['client', 'staff']);
             $t->unsignedBigInteger('relid')->comment('staffs/clients -> id');
             $t->string('ip_address', 100);
+            $t->string('browser', 50);
+            $t->string('os', 50);
             $t->string('user_agent');
             $t->timestamp('logged_in_at');
 
