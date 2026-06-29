@@ -35,7 +35,8 @@
                 "helpers/hooks"
             ],
             "middleware": true,
-            "migration": true
+            "migration": true,
+            "model": true
         }
     }
 }
