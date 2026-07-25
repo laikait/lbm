@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace LBM\Support;
 
-use Laika\Service\{Redirect, Request, Local, Date, Csrf, DB, Url};
+use Laika\Service\{Redirect, Request, Local, Date, CSRF, DB, Url};
 use Laika\Session\Service\Session;
 use Laika\Model\Connection;
 use LANG;
@@ -62,8 +62,8 @@ class Initiate
         }
 
         // Validate CSRF
-        if(Request::isPost() && !Csrf::is_valid()) {
-            Redirect::with(LANG::$invalidCsrf, false)->back();
+        if(Request::isPost() && !CSRF::is_valid()) {
+           Redirect::with(LANG::$invalidCsrf, false)->back();
         }
     }
 }

@@ -10,8 +10,8 @@
 ##########################################################################
 use Laika\Core\App\Http;
 use LBM\Middleware\Auth;
+use LBM\Middleware\Admin\ClientMiddleware;
 // use App\Middleware\Admin\InitMiddleware; // Use It In 1st Middleware Each Admin Routes Without Login Pages
-use App\Middleware\Admin\ClientMiddleware;
 
 
 // Admin Route Group
@@ -37,7 +37,7 @@ Http::group(ADMIN, function(){
     Http::get('/client/{client:[a-zA-Z0-9\-]+}/contact/{contact:[a-zA-Z0-9\-]+}', 'Admin\ClientController@addContact')->name('staff.client.contact');
     
     // Products
-    Http::get('/products', function(){})->name('staff.products');
+    Http::get('/products', 'Admin\ProductController@products')->name('staff.products');
     Http::get('/product/{product:[a-zA-Z0-9\-]+}', function(){})->name('staff.product');
     
     // Orders

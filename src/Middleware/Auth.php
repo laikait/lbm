@@ -134,6 +134,7 @@ final class Auth implements MiddlewareInterface
             AuthCore::login($user['id'], $user);
         } catch (\Throwable $th) {
             if (DEBUG) throw new MiddlewareException("Login Failed! {$th->getMessage()}");
+            alert_set(LANG::$generalError, false);
             return;
         }
         // Log Data

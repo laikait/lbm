@@ -26,7 +26,6 @@ use Laika\Service\Activity;
 use LBM\Model\InvoiceStatusModel;
 use LBM\Model\ClientContactModel;
 use LBM\Model\ClientServiceModel;
-use Laika\Service\ChangeLog;
 use LBM\Exception\ActionException;
 use LBM\Model\ClientServiceNoteModel;
 use LBM\Model\ClientServiceAddonModel;
@@ -376,7 +375,7 @@ class Client
         $rules = [
             'first_name'    =>  'required|regex:/^[\w\s\.]+$/i',
             'last_name'     =>  'required|regex:/^[\w\s\.]+$/i',
-            'status_relid'  =>  'required|in:' . implode(',', array_column(client_statuses(), 'status_id')),
+            'status'        =>  'required|in:' . implode(',', array_column(client_statuses(), 'status_id')),
             'currency'      =>  'required|in:' . implode(',', array_column(get_currencies(), 'currency_id'))
         ];
         // Set Optional Rules If Exists
@@ -395,8 +394,8 @@ class Client
             'first_name.regex'      =>  LANG::$unsupportedCharacter,
             'last_name.required'    =>  LANG::$requiredField,
             'last_name.regex'       =>  LANG::$unsupportedCharacter,
-            'status_relid.required' =>  LANG::$requiredField,
-            'status_relid.in'       =>  LANG::$invalidOption,
+            'status.required'       =>  LANG::$requiredField,
+            'status.in'             =>  LANG::$invalidOption,
             'currency.required'     =>  LANG::$requiredField,
             'currency.in'           =>  LANG::$invalidOption
         ];
@@ -432,7 +431,7 @@ class Client
                 'postcode'          =>  (string) Request::input('postcode'),
                 'country_relid'     =>  (int) Request::input('country'),
                 'currency_relid'    =>  (int) Request::input('currency'),
-                'status_relid'      =>  (int) Request::input('status_relid')
+                'status_relid'      =>  (int) Request::input('status')
             ];
 
             // $client = get_client($cid);
@@ -459,7 +458,7 @@ class Client
             $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
             $log = sprintf(LANG::$clientUpdatedByStaff, $client_href, $staff_href);
 
-            Activity::author('staff', $staff['id'])->log($log)->event('modify');
+            Activity::author('staff', $staff['id'])->log($log)->event('modify', $changes);
             Activity::insert();
 
             return response(true, LANG::$saveSuccess);
