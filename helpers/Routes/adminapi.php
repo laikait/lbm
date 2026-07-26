@@ -13,22 +13,22 @@ declare(strict_types=1);
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
-use Laika\Core\App\Http;
+use Laika\Route\Url;
 use Laika\Core\Api\Api;
 
 /**
  * {version} Example = example.com/admin/api/v1/login
  */
-Http::group(ADMIN.'/api', function(){
+Url::group(ADMIN.'/api', function(){
     // Get Clients
-    Http::get('/{version}/clients', 'Api\Staff\ClientController@clients')->name('staff.api.clients');
+    Url::get('/{version}/clients', 'Api\Staff\ClientController@clients')->name('staff.api.clients');
 
     // Fallback
-    Http::fallback(function(){
+    Url::fallback(ADMIN.'/api', function(){
         $api = new Api();
         $api->message("Invali Url Detected!");
         $api->send([], 404);
         return;
     });
 
-})->middleware('CommonAdminApi');
+})->pipeline('CommonAdminApi');

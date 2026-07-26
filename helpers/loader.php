@@ -12,5 +12,7 @@
 
 declare(strict_types=1);
 
+use Laika\Service\Resource;
+
 // Require All Routes
-foreach (glob(__DIR__ . '/routes/*.route.php') as $route_file) require_once $route_file;
+Resource::register('routes', __DIR__ . '/Routes');
