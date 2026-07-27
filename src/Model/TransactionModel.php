@@ -25,6 +25,18 @@ class TransactionModel extends Model
     // Primary Column Name
     protected string $id = 'tx_id';
 
+    /** @var string UID Column Name */
+    protected string $uid = 'uid';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    /** @var bool Soft Delete */
+    protected bool $softDelete = false;
+
+    /** @var string Deleted At Column */
+    protected string $deletedAtColumn = 'deleted_at';
+
     // Cast Columns
     protected array $casts = ['gateway_data' => 'serialize']; // Example: ['col_1' => 'int', 'col_2' => 'string', ....]
 

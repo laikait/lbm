@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\ClientNoteModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class ClientNoteSchema
+class ClientNoteSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'client_notes';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('client_notes', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('note_id');
             $t->unsignedBigInteger('client_relid')->comment('clients -> cid');
             $t->unsignedBigInteger('staff_relid')->comment('staffs -> sid');
@@ -34,12 +38,7 @@ class ClientNoteSchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new ClientNoteModel();
         $model->transaction(function (ClientNoteModel $m) {
@@ -74,9 +73,8 @@ class ClientNoteSchema
             try {
                 $m->insert($logs);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into client_notes. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

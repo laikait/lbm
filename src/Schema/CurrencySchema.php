@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\CurrencyModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class CurrencySchema
+class CurrencySchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'currencies';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('currencies', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('currency_id');
             $t->string('currency_code', 3)->comment('ISO 4217 e.g. USD');
             $t->string('prefix_symbol');
@@ -39,12 +43,7 @@ class CurrencySchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new CurrencyModel();
         $model->transaction(function (CurrencyModel $m) {
@@ -57,7 +56,7 @@ class CurrencySchema
                     'is_default' => 'yes'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into currencies. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
         return;

@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\BillingCycleModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class BillingCycleSchema
+class BillingCycleSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'billing_cycles';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('billing_cycles', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('billing_cycle_id');
             $t->string('billing_cycle_name', 50);
             $t->timestamp('billing_cycle_created_at');
@@ -29,11 +33,7 @@ class BillingCycleSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $cycles = [
             ['billing_cycle_name' => 'one_time'],
@@ -48,9 +48,8 @@ class BillingCycleSchema
             try {
                 $m->insert($cycles);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Default Billing Cycles. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

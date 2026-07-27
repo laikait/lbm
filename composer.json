@@ -27,16 +27,7 @@
         "laika": {
             "relays": [
                 "LBM\\Relay\\Provider"
-            ],
-            "functions": [
-                "helpers/functions"
-            ],
-            "hooks": [
-                "helpers/hooks"
-            ],
-            "middleware": true,
-            "schema": true,
-            "model": true
+            ]
         }
     }
 }
