@@ -10,15 +10,19 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class LoginLogSchema
+class LoginLogSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'login_logs';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('login_logs', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('log_id');
             $t->enum('type', ['client', 'staff']);
             $t->unsignedBigInteger('relid')->comment('staffs/clients -> id');
@@ -26,10 +30,10 @@ class LoginLogSchema
             $t->string('browser', 50);
             $t->string('os', 50);
             $t->string('user_agent');
-            $t->timestamp('logged_in_at');
+            $t->timestamp('created_at');
 
             // Indexes
-            $t->index('logged_in_at');
+            $t->index('created_at');
         });
     }
 }

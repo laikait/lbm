@@ -10,28 +10,32 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class PaymentMethodSchema
+class PaymentMethodSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'payment_methods';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('payment_methods', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('pm_id');
-            $t->unsignedBigInteger('client_relid')->comment('clients -> cid');
+            $t->unsignedBigInteger('client_relid')->comment('clients -> id');
             $t->unsignedInteger('gateway_relid')->comment('payment_gateways -> gateway_id');
             $t->unsignedInteger('type_relid')->comment('payment_method_types -> pm_type_id');
             $t->string('token')->comment('Gateway Vault Token');
-            $t->char('last_four', 4)->nullable();
-            $t->string('card_brand', 20)->nullable();
-            $t->tinyInteger('expiry_month')->nullable();
-            $t->tinyInteger('expiry_year')->nullable();
+            $t->char('last_four', 4)->nullable()->default(NULL);
+            $t->string('card_brand', 20)->nullable()->default(NULL);
+            $t->tinyInteger('expiry_month')->nullable()->default(NULL);
+            $t->tinyInteger('expiry_year')->nullable()->default(NULL);
             $t->enum('is_default', ['yes', 'no'])->default('no');
-            $t->string('billing_name')->nullable();
-            $t->json('billing_address')->nullable();
-            $t->timestamp('pm_created_at');
+            $t->string('billing_name')->nullable()->default(NULL);
+            $t->json('billing_address')->nullable()->default(NULL);
+            $t->timestamp('created_at');
 
             // Indexes
             $t->index('client_relid');

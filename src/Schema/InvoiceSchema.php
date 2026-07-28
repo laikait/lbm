@@ -13,15 +13,19 @@ use LBM\Model\InvoiceModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
 use Laika\Service\Date;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class InvoiceSchema
+class InvoiceSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'invoices';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('invoices', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('invoice_id');
             $t->string('invoice_number', 50);
             $t->unsignedBigInteger('client_relid');
@@ -33,10 +37,10 @@ class InvoiceSchema
             $t->decimal('total', 18, 4)->default(0.0000);
             $t->decimal('credit_applied', 18, 4)->default(0.0000);
             $t->decimal('amount_paid', 18, 4)->default(0.0000);
-            $t->timestamp('invoice_due_date')->nullable()->default(null);
-            $t->timestamp('invoice_paid_date')->nullable()->default(null);
+            $t->timestamp('invoice_due_date')->nullable()->default(NULL);
+            $t->timestamp('invoice_paid_date')->nullable()->default(NULL);
             $t->string('payment_gateway')->nullable()->comment('slug value from payment_gateways');
-            $t->text('terms')->nullable()->default(null);
+            $t->text('terms')->nullable()->default(NULL);
             $t->timestamps('invoice_created_at', 'invoice_updated_at');
 
             // Indexes
@@ -52,12 +56,7 @@ class InvoiceSchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new InvoiceModel();
         $model->transaction(function (InvoiceModel $m) {
@@ -105,9 +104,8 @@ class InvoiceSchema
                     'payment_gateway' => 'credit-card'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into invoices. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

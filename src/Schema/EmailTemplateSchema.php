@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\EmailTemplateModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class EmailTemplateSchema
+class EmailTemplateSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'email_templates';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('email_templates', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('et_id');
             $t->string('slug')->comment('Example: client-welcome, invoice-created');
             $t->string('name', 100)->comment('Example: client_welcome, invoice_created');
@@ -37,11 +41,7 @@ class EmailTemplateSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new EmailTemplateModel();
         $model->transaction(function (EmailTemplateModel $m) {
@@ -54,9 +54,8 @@ class EmailTemplateSchema
                     "variables" => json_encode(['client_name', 'company_name', 'client_email', 'client_username'], JSON_PRETTY_PRINT)
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into clients. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

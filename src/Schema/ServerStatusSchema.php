@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
 use LBM\Model\ServerStatus;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class ServerStatusSchema
+class ServerStatusSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'server_statuses';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('server_statuses', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('status_id');
             $t->string('status_name', 50)->comment('Status Name');
             $t->string('status_color', 25)->comment('Status Color');
@@ -32,11 +36,7 @@ class ServerStatusSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $statuses = [
             ['status_name' => 'online', 'status_color' => '#000000', 'system_default' => 'yes'],
@@ -48,9 +48,8 @@ class ServerStatusSchema
             try {
                 $m->insert($statuses);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Default Into 'server_statuses. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

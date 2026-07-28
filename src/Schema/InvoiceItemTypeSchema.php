@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\InvoiceItemTypeModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class InvoiceItemTypeSchema
+class InvoiceItemTypeSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'invoice_item_types';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('invoice_item_types', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('type_id');
             $t->string('type_name', 50)->comment('Item Type Name');
             $t->timestamp('type_created_at');
@@ -30,11 +34,7 @@ class InvoiceItemTypeSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new InvoiceItemTypeModel();
         $model->transaction(function ($m) {
@@ -51,9 +51,8 @@ class InvoiceItemTypeSchema
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into 'invoice_item_types'. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

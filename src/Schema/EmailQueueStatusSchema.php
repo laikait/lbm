@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\EmailQueueStatusModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class EmailQueueStatusSchema
+class EmailQueueStatusSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'email_queue_statuses';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('email_queue_statuses', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('status_id')->comment('Status ID');
             $t->enum('status_name', ['queued', 'completed', 'failed', 'manual'])->default('queued')->comment('Status Name');
             $t->string('status_color', 25)->comment('Status Color');
@@ -29,11 +33,7 @@ class EmailQueueStatusSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new EmailQueueStatusModel();
         $model->transaction(function (EmailQueueStatusModel $m) {
@@ -46,9 +46,8 @@ class EmailQueueStatusSchema
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into 'email_queue_statuses'. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

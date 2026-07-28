@@ -10,29 +10,33 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class EmailQueueSchema
+class EmailQueueSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'email_queue';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('email_queue', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('queue_id');
             $t->unsignedBigInteger('client_relid')->comment('clients -> cid');
             $t->unsignedInteger('template_relid')->comment('email_templates -> et_id');
             $t->string('to_email', 150);
-            $t->string('from_name', 150)->nullable()->default(null);
+            $t->string('from_name', 150)->nullable()->default(NULL);
             $t->string('from_email', 150);
-            $t->string('reply_to', 150)->nullable()->default(null);
+            $t->string('reply_to', 150)->nullable()->default(NULL);
             $t->string('subject');
             $t->longText('body_html');
             $t->longText('body_plain');
             $t->unsignedInteger('status_relid')->comment('email_queue_statuses -> status_id');
             $t->unsignedInteger('attempts')->default(0);
-            $t->text('error_message')->nullable()->default(null);
-            $t->timestamp('sent_at')->nullable()->default(null);
+            $t->text('error_message')->nullable()->default(NULL);
+            $t->timestamp('sent_at')->nullable()->default(NULL);
             $t->timestamp('queue_created_at');
 
             // Indexes

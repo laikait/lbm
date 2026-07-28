@@ -10,25 +10,29 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class PaymentGatewaySchema
+class PaymentGatewaySchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'payment_gateways';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('payment_gateways', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('gateway_id');
             $t->string('gateway_name', 100)->comment('stripe, paypal, paypal');
             $t->string('gateway_slug');
             $t->string('display_name', 100);
             $t->string('module_class', 100);
-            $t->string('logo_url')->nullable();
-            $t->serialize('settings')->nullable()->comment('encrypted API keys/secrets');
+            $t->string('logo_url')->nullable()->default(NULL);
+            $t->serialize('settings')->nullable()->default(NULL)->comment('encrypted API keys/secrets');
             $t->enum('test_mode', ['yes', 'no'])->default('no');
             $t->enum('is_active', ['yes', 'no'])->default('yes');
-            $t->json('features')->nullable()->comment('{"refunds":true,"subscriptions":true}');
+            $t->json('features')->nullable()->default(NULL)->comment('{"refunds":true,"subscriptions":true}');
             $t->timestamps('gateway_created_at', 'gateway_updated_at');
 
             // Indexes

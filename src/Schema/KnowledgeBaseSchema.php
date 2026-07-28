@@ -10,17 +10,21 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class KnowledgeBaseSchema
+class KnowledgeBaseSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'articles';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('articles', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('kb_id');
-            $t->unsignedInteger('category_relid')->nullable()->comment('kb_categories -> kb_cat_id');
+            $t->unsignedInteger('category_relid')->nullable()->default(NULL)->comment('kb_categories -> kb_cat_id');
             $t->unsignedBigInteger('staff_relid')->comment('staffs -> sid');
             $t->string('title');
             $t->string('slug');
@@ -37,10 +41,8 @@ class KnowledgeBaseSchema
             $t->index('category_relid');
             $t->index('staff_relid');
             $t->unique('slug');
-            $t->index('is_featured');
             $t->index('is_active');
             $t->index('kb_created_at');
-            $t->index('kb_updated_at');
         });
     }
 }

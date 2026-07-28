@@ -12,19 +12,23 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\OrderNoteModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class OrderNoteSchema
+class OrderNoteSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'order_items';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('order_notes', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('note_id');
             $t->unsignedBigInteger('order_relid')->comment('orders -> oid');
             $t->enum('creator_type', ['client', 'staff', 'system']);
-            $t->unsignedBigInteger('creator_relid')->nullable()->default(null);
+            $t->unsignedBigInteger('creator_relid')->nullable()->default(NULL);
             $t->text('note');
             $t->timestamp('note_created_at');
 
@@ -35,12 +39,7 @@ class OrderNoteSchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new OrderNoteModel();
         $model->transaction(function (OrderNoteModel $m) {
@@ -58,9 +57,8 @@ class OrderNoteSchema
                     'note' => 'New Order Status Pending By Client ID 1'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into order_notes. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

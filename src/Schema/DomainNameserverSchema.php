@@ -10,19 +10,23 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class DomainNameserverSchema
+class DomainNameserverSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'domain_nameservers';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('domain_nameservers', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('ns_id');
             $t->unsignedBigInteger('domain_relid')->comment('domains -> dimain_id');
             $t->string('hostname');
-            $t->string('ip_address', 100)->nullable()->default(null);
+            $t->string('ip_address', 100)->nullable()->default(NULL);
             $t->timestamp('ns_created_at');
 
             // Indexes

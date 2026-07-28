@@ -10,19 +10,23 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class SupportTicketReplySchema
+class SupportTicketReplySchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'support_ticket_replies';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('support_ticket_replies', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('reply_id');
             $t->unsignedBigInteger('ticket_relid')->comment('support_tickets -> ticket_id');
             $t->enum('author_type', ['client','staff','system'])->comment('client, staff, system');
-            $t->unsignedBigInteger('author_relid')->nullable()->comment('NULL if author is system');
+            $t->unsignedBigInteger('author_relid')->nullable()->default(NULL)->comment('NULL if author is system');
             $t->longText('message');
             $t->enum('is_internal', ['yes', 'no'])->default('no')->comment('staff-only note');
             $t->timestamp('reply_created_at');

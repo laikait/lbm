@@ -12,21 +12,25 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\StaffModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class StaffSchema
+class StaffSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'staffs';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('staffs', function (Blueprint $t) {
-            $t->bigId('sid');
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
+            $t->bigId('id');
             $t->unsignedInteger('role_relid')->comment('staff_roles -> role_id');
             $t->string('first_name', 80);
             $t->string('middle_name', 80)->nullable()->default(null);
             $t->string('last_name', 80);
-            $t->string('username', 80);
+            $t->string('username', 80)->default(NULL);
             $t->string('email');
             $t->string('password');
             $t->string('two_factor_secret')->nullable()->default(null);
@@ -35,7 +39,7 @@ class StaffSchema
             $t->unsignedInteger('status_relid')->comment('staff_statuses -> status_id');
             $t->timestamps('staff_created_at', 'staff_updated_at');
 
-            $t->unique('username');
+            $t->index('username');
             $t->unique('email');
             $t->index('role_relid');
             $t->index('status_relid');
@@ -44,11 +48,7 @@ class StaffSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new StaffModel();
         $model->transaction(function (StaffModel $m) {

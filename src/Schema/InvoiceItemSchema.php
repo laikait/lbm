@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\InvoiceItemModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class InvoiceItemSchema
+class InvoiceItemSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'invoice_items';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('invoice_items', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('invoice_item_id');
             $t->unsignedBigInteger('invoice_relid')->comment('invoices -> invoice_id');
             $t->unsignedInteger('item_type_relid')->default(1)->comment('invoice_item_types -> type_id');
@@ -30,10 +34,10 @@ class InvoiceItemSchema
             $t->decimal('tax', 7, 4)->default(0.0000);
             $t->decimal('discount', 18, 4)->default(0.0000);
             $t->decimal('total', 18, 4)->comment('quantity * unit_price - discount');
-            $t->unsignedBigInteger('service_relid')->nullable()->comment('client_services -> service_id');
-            $t->unsignedBigInteger('domain_relid')->nullable()->comment('domains -> domain_id');
-            $t->timestamp('period_start')->nullable()->default(null);
-            $t->timestamp('period_end')->nullable()->default(null);
+            $t->unsignedBigInteger('service_relid')->nullable()->default(NULL)->comment('client_services -> service_id');
+            $t->unsignedBigInteger('domain_relid')->nullable()->default(NULL)->comment('domains -> domain_id');
+            $t->timestamp('period_start')->nullable()->default(NULL);
+            $t->timestamp('period_end')->nullable()->default(NULL);
             $t->timestamps('invoice_item_created_at', 'invoice_item_updated_at');
 
             // Indexes
@@ -46,12 +50,7 @@ class InvoiceItemSchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new InvoiceItemModel();
         $model->transaction(function (InvoiceItemModel $m) {
@@ -65,9 +64,8 @@ class InvoiceItemSchema
                     'total' => 5.000 * 1.000 - 0.000 // quantity * unit_price - discount
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into invoice_items. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

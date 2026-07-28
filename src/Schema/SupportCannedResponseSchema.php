@@ -10,20 +10,24 @@ defined('APP_PATH') || http_response_code(403).die('403 Direct Access Denied!');
 
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class SupportCannedResponseSchema
+class SupportCannedResponseSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'support_canned_responses';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('support_canned_responses', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('response_id');
-            $t->unsignedInteger('department_relid')->nullable()->comment('NULL = all departments');
+            $t->unsignedInteger('department_relid')->nullable()->default(NULL)->comment('NULL = all departments');
             $t->string('title');
             $t->text('message');
-            $t->unsignedBigInteger('staff_relid')->nullable()->comment('staffs -> sid');
+            $t->unsignedBigInteger('staff_relid')->nullable()->default(NULL)->comment('staffs -> sid');
             $t->timestamps('response_created_at', 'response_updated_at');
 
             // Indexes

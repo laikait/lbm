@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
 use LBM\Model\PaymentMethodTypeModel;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class PaymentMethodTypeSchema
+class PaymentMethodTypeSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'payment_method_types';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('payment_method_types', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('pm_type_id');
             $t->string('type_name', 100);
             $t->enum('is_default', ['yes', 'no'])->default('no');
@@ -31,11 +35,7 @@ class PaymentMethodTypeSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new PaymentMethodTypeModel();
         $model->transaction(function ($m) {
@@ -48,9 +48,8 @@ class PaymentMethodTypeSchema
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into 'payment_method_types' {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

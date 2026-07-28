@@ -59,6 +59,5 @@ class CurrencySchema extends SchemaAbstract
                 throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

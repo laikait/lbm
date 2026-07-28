@@ -12,24 +12,28 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\OrderModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class OrderSchema
+class OrderSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'orders';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('orders', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('oid');
             $t->unsignedBigInteger('client_relid')->comment('clients -> cid');
-            $t->unsignedBigInteger('invoice_relid')->nullable()->comment('invoices -> invoice_id');
-            $t->unsignedInteger('promo_relid')->nullable()->comment('promo_codes -> promo_id');
+            $t->unsignedBigInteger('invoice_relid')->nullable()->default(NULL)->comment('invoices -> invoice_id');
+            $t->unsignedInteger('promo_relid')->nullable()->default(NULL)->comment('promo_codes -> promo_id');
             $t->unsignedInteger('status_relid')->default(1)->comment('order_statuses -> status_id');
             $t->unsignedInteger('currency_relid')->comment('currencies -> currency_id');
             $t->string('order_number', 100);
             $t->decimal('amount', 18, 4);
-            $t->string('order_from_ip', 100)->nullable()->default(null);
+            $t->string('order_from_ip', 100)->nullable()->default(NULL);
             $t->decimal('fraud_score', 5, 2)->default(0.00);
             $t->timestamps('order_created_at', 'order_updated_at');
 
@@ -45,12 +49,7 @@ class OrderSchema
         });
     }
 
-    /**
-     * REMOVE
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new OrderModel();
         $model->transaction(function (OrderModel $m) {
@@ -74,9 +73,8 @@ class OrderSchema
                     'order_from_ip' => '::1'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into orders. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

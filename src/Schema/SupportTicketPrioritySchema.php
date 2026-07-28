@@ -12,15 +12,19 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\SupportTicketPriorityModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class SupportTicketPrioritySchema
+class SupportTicketPrioritySchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'support_priorities';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
-        Schema::on()->createIfNotExists('support_priorities', function (Blueprint $t) {
+        Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->id('priority_id');
             $t->string('priority_name');
             $t->string('priority_color');
@@ -30,11 +34,7 @@ class SupportTicketPrioritySchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new SupportTicketPriorityModel();
         $model->transaction(function (SupportTicketPriorityModel $m) {
@@ -47,9 +47,8 @@ class SupportTicketPrioritySchema
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into 'support_priorities'. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
-        return;
     }
 }

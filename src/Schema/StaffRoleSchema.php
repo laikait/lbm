@@ -12,13 +12,17 @@ use Laika\Core\Exceptions\SchemaException;
 use LBM\Model\StaffRoleModel;
 use Laika\Model\Schema\Blueprint;
 use Laika\Model\Schema\Schema;
+use Laika\Core\Abstracts\SchemaAbstract;
 
-class StaffRoleSchema
+class StaffRoleSchema extends SchemaAbstract
 {
-    /**
-     * Migrate Table
-     */
-    public function migrate()
+    /** @var string Database Table Name */
+    protected string $table = 'staff_roles';
+
+    /** @var string Database Connection Name */
+    protected string $connection = 'default';
+
+    public function up(): void
     {
         Schema::on()->createIfNotExists('staff_roles', function (Blueprint $t) {
             $t->id('role_id');
@@ -33,11 +37,7 @@ class StaffRoleSchema
         });
     }
 
-    /**
-     * Default Values to Insert
-     * @return void
-     */
-    public function default(): void
+    public function seed(): void
     {
         $model = new StaffRoleModel();
         $model->transaction(function (StaffRoleModel $m) {
@@ -65,7 +65,7 @@ class StaffRoleSchema
             try {
                 $m->insert($role);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into staff_roles. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
             }
         });
         return;
