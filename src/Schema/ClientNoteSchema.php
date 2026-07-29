@@ -73,7 +73,7 @@ class ClientNoteSchema extends SchemaAbstract
             try {
                 $m->insert($logs);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

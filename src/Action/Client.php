@@ -18,7 +18,6 @@ use LBM\Model\CurrencyModel;
 use Laika\Service\Date;
 use Laika\Service\Vault;
 use LBM\Model\ClientNoteModel;
-use LBM\Model\ClientTokenModel;
 use LBM\Model\StaffStatusModel;
 use Laika\Service\Request;
 use LBM\Model\ClientStatusModel;
@@ -44,9 +43,6 @@ class Client
     /** @var ClientNoteModel $note_model */
     protected ClientNoteModel $note_model;
 
-    /** @var ClientTokenModel $token_model */
-    protected ClientTokenModel $token_model;
-
     /** @var CountryModel $country_model */
     protected CountryModel $country_model;
 
@@ -60,7 +56,6 @@ class Client
     {
         $this->model = new ClientModel();
         $this->status_model = new ClientStatusModel();
-        $this->token_model = new ClientTokenModel();
         $this->note_model = new ClientNoteModel();
         $this->country_model = new CountryModel();
         $this->currency_model = new CurrencyModel();

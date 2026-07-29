@@ -54,7 +54,7 @@ class EmailTemplateSchema extends SchemaAbstract
                     "variables" => json_encode(['client_name', 'company_name', 'client_email', 'client_username'], JSON_PRETTY_PRINT)
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

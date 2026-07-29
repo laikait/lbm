@@ -66,6 +66,7 @@ class ClientContactSchema extends SchemaAbstract
             try {
                 $m->insert([
                     'client_relid' => 1,
+                    'cc_uid' => $m->uid(),
                     'first_name' => 'Contact',
                     'last_name' => '1',
                     'email' => 'testcontact1@test.com',
@@ -82,7 +83,9 @@ class ClientContactSchema extends SchemaAbstract
                 ]);
                 $m->insert([
                     'client_relid' => 1,
+                    'cc_uid' => $m->uid(),
                     'first_name' => 'Contact',
+                    'cc_uid' => $m->uid(),
                     'middle_name' => 'Name',
                     'last_name' => '2',
                     'email' => 'testcontact2@test.com',
@@ -96,7 +99,7 @@ class ClientContactSchema extends SchemaAbstract
                     'is_primary' => 'no'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

@@ -35,14 +35,14 @@ class PaymentMethodSchema extends SchemaAbstract
             $t->enum('is_default', ['yes', 'no'])->default('no');
             $t->string('billing_name')->nullable()->default(NULL);
             $t->json('billing_address')->nullable()->default(NULL);
-            $t->timestamp('created_at');
+            $t->timestamp('method_created_at');
 
             // Indexes
             $t->index('client_relid');
             $t->index('gateway_relid');
             $t->index('type_relid');
             $t->index('is_default');
-            $t->index('pm_created_at');
+            $t->index('method_created_at');
         });
     }
 }

@@ -50,7 +50,7 @@ class SupportTicketStatusSchema extends SchemaAbstract
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

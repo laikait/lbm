@@ -2,8 +2,14 @@
 
 declare(strict_types=1);
 
-namespace LBM\Middleware;
+namespace LBM\Pipeline;
 
+use Laika\Service\Url;
+use Laika\Service\Vault;
+use Laika\Service\Redirect;
+use Laika\Service\Request;
+use Laika\Service\Visitor;
+use Laika\Service\Auth as AuthCore;
 use LBM\Service\Initiate;
 use LBM\Model\StaffModel;
 use LBM\Model\ClientModel;
@@ -11,13 +17,13 @@ use LBM\Model\LoginLogModel;
 use LBM\Model\StaffRoleModel;
 use LBM\Model\StaffStatusModel;
 use LBM\Model\ClientStatusModel;
-use Laika\Core\Interfaces\MiddlewareInterface;
-use Laika\Core\Exceptions\MiddlewareException;
-use Laika\Service\{Url, Vault, Redirect, Request, Visitor, Auth as AuthCore};
+use Laika\Route\Interfaces\PipelineInterface;
+use Laika\Route\Exceptions\PipelineException;
+
 use LANG;
 // use Laika\Core\Service\{StaffAuth, ClientAuth, Url};
 
-final class Auth implements MiddlewareInterface
+final class Auth implements PipelineInterface
 {
     /** Constants */
     public CONST AUTHORIZED = 1;
@@ -76,7 +82,7 @@ final class Auth implements MiddlewareInterface
      * Handle Authentication & Authorization
      * @return ?string
      */
-    public function handle(callable $next, array $params): ?string
+    public function handle(callable $next, array &$params): ?string
     {
         match (true) {
             match_url('staff.login')    =>  $this->processLogin(),
@@ -133,7 +139,7 @@ final class Auth implements MiddlewareInterface
         try {
             AuthCore::login($user['id'], $user);
         } catch (\Throwable $th) {
-            if (DEBUG) throw new MiddlewareException("Login Failed! {$th->getMessage()}");
+            if (DEBUG) throw new PipelineException("Login Failed! {$th->getMessage()}");
             alert_set(LANG::$generalError, false);
             return;
         }
@@ -152,7 +158,7 @@ final class Auth implements MiddlewareInterface
                 $m->insert($data);
             });
         } catch (\Throwable $th) {
-            if (DEBUG) throw new MiddlewareException("Login Log Insert Failed! {$th->getMessage()}");
+            if (DEBUG) throw new PipelineException("Login Log Insert Failed! {$th->getMessage()}");
         }
         // Make Login Log
         Redirect::with(sprintf(LANG::$welcome, $user['first_name']), true)->to($this->redirects[$this->slug]['dash']);

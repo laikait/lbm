@@ -23,7 +23,7 @@ class StaffModel extends Model
     protected string $table = 'staffs';
 
     // Primary Column Name
-    protected string $id = 'id';
+    protected string $id = 'sid';
 
     // Cast Columns
     protected array $casts = ['permissions' => 'serialize']; // Example: ['col_1' => 'int', 'col_2' => 'string', ....]

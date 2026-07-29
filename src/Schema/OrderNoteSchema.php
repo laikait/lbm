@@ -17,7 +17,7 @@ use Laika\Core\Abstracts\SchemaAbstract;
 class OrderNoteSchema extends SchemaAbstract
 {
     /** @var string Database Table Name */
-    protected string $table = 'order_items';
+    protected string $table = 'order_notes';
 
     /** @var string Database Connection Name */
     protected string $connection = 'default';
@@ -57,7 +57,7 @@ class OrderNoteSchema extends SchemaAbstract
                     'note' => 'New Order Status Pending By Client ID 1'
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

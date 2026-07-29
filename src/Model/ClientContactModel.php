@@ -26,7 +26,7 @@ class ClientContactModel extends Model
     protected string $id = 'cc_id';
 
     /** @var string UID Column Name */
-    protected string $uid = 'uid';
+    protected string $uid = 'cc_uid';
 
     /** @var string Database Connection Name */
     protected string $connection = 'default';

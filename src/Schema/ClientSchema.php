@@ -23,15 +23,14 @@ class ClientSchema extends SchemaAbstract
     public function up(): void
     {
         Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
-            $t->bigId('id');
+            $t->bigId('cid');
             $t->uid('uid');
             $t->string('company_name')->nullable()->default(NULL);
             $t->string('first_name', 80);
             $t->string('middle_name', 80)->nullable()->default(NULL);
             $t->string('last_name', 80);
             $t->string('email');
-            $t->string('username', 80)->default(NULL);
-            $t->string('password');
+            $t->string('username', 80)->nullable()->default(NULL);
             $t->string('phone_cc', 5)->nullable()->default(NULL)->comment('Phone Calling Code');
             $t->string('phone_number', 30)->nullable()->default(NULL);
             $t->string('street')->nullable()->default(NULL);

@@ -25,20 +25,21 @@ class StaffSchema extends SchemaAbstract
     public function up(): void
     {
         Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
-            $t->bigId('id');
+            $t->bigId('sid');
+            $t->uid('uid');
             $t->unsignedInteger('role_relid')->comment('staff_roles -> role_id');
             $t->string('first_name', 80);
             $t->string('middle_name', 80)->nullable()->default(null);
             $t->string('last_name', 80);
-            $t->string('username', 80)->default(NULL);
+            $t->string('username', 80)->nullable()->default(NULL);
             $t->string('email');
-            $t->string('password');
             $t->string('two_factor_secret')->nullable()->default(null);
             $t->timestamp('last_login_at')->nullable()->default(null);
             $t->string('last_login_ip', 100)->nullable()->default(null);
             $t->unsignedInteger('status_relid')->comment('staff_statuses -> status_id');
             $t->timestamps('staff_created_at', 'staff_updated_at');
 
+            // Indexes
             $t->index('username');
             $t->unique('email');
             $t->index('role_relid');
@@ -55,11 +56,11 @@ class StaffSchema extends SchemaAbstract
             try {
                 $statuses = [
                     'role_relid' => 1,
+                    'uid' => $m->uid(),
                     'first_name' => 'Showket',
                     'last_name' => 'Ahmed',
                     'username' => 'riyadhtayf',
                     'email' => 'riyadhtayf@gmail.com',
-                    'password' => password_hash('123456', PASSWORD_ARGON2ID),
                     'status_relid' => 1
                 ];
                 $m->insert($statuses);

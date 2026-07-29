@@ -10,7 +10,8 @@
 
 declare(strict_types=1);
 
-use Laika\Service\{Request, Auth};
+use Laika\Service\Request;
+use Laika\Service\Auth;
 
 /*=============================== ADMIN INFO ===============================*/
 /**

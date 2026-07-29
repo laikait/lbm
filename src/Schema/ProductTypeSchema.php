@@ -55,7 +55,7 @@ class ProductTypeSchema extends SchemaAbstract
                 ];
                 $m->insert($default);
             } catch (\Throwable $e) {
-                throw new SchemaException("Unable to Insert Into 'product_types'. {$e->getMessage()}", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
         return;

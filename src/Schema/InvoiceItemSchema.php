@@ -64,7 +64,7 @@ class InvoiceItemSchema extends SchemaAbstract
                     'total' => 5.000 * 1.000 - 0.000 // quantity * unit_price - discount
                 ]);
             } catch (\Throwable $e) {
-                throw new SchemaException("Insert Failed Into [{$this->table}].", (int) $e->getCode(), $e);
+                throw new SchemaException($e->getMessage(), (int) $e->getCode(), $e);
             }
         });
     }

@@ -12,23 +12,23 @@
 declare(strict_types=1);
 
 // Namespace
-namespace LBM\Middleware\Admin;
+namespace LBM\Pipeline\Admin;
 
 // Deny Direct Access
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
-use Laika\Core\Interfaces\MiddlewareInterface;
+use Laika\Route\Interfaces\PipelineInterface;
 use Laika\Service\{Request, Redirect};
 use LBM\Service\ClientNote;
 use LBM\Service\Client;
 
-class ClientMiddleware implements MiddlewareInterface
+class ClientPipeline implements PipelineInterface
 {
     /**
      * @param callable $next
      * @param array $params
      */
-    public function handle(callable $next, array $params): ?string
+    public function handle(callable $next, array &$params): ?string
     {
         // Handle Request
         $res = match (Request::input('client')) {
