@@ -9,9 +9,12 @@
 /*----------------------------- LBM ROUTES -----------------------------*/
 ##########################################################################
 use Laika\Route\Url;
+use LBM\Pipeline\Admin\Auth;
 use LBM\Pipeline\InitPipeline;
 use LBM\Pipeline\Admin\Clientpipeline;
-// use App\pipeline\Admin\Initpipeline; // Use It In 1st pipeline Each Admin Routes Without Login Pages
+
+// Global Init
+Url::globalPipeline(InitPipeline::class);
 
 
 // Admin Route Group
@@ -116,7 +119,7 @@ Url::group(ADMIN, function(){
 
     });
 
-})->pipeline([InitPipeline::class]);
+})->pipeline([Auth::class]);
 
 
 // Panel Route Group

@@ -48,6 +48,6 @@ class ClientPipeline implements PipelineInterface
             alert_set($res['message'], $res['success']);
         }
 
-        return $next($params);
+        return $next();
     }
 }
