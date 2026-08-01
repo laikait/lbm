@@ -11,17 +11,18 @@ declare(strict_types=1);
 
 namespace LBM\Action;
 
+use Laika\Service\Date;
+use Laika\Service\Vault;
+use Laika\Service\Request;
+use Laika\Service\Activity;
 use LBM\Model\ClientModel;
 use LBM\Model\CountryModel;
 use LBM\Model\InvoiceModel;
 use LBM\Model\CurrencyModel;
-use Laika\Service\Date;
-use Laika\Service\Vault;
+use LBM\Model\PasswordModel;
 use LBM\Model\ClientNoteModel;
 use LBM\Model\StaffStatusModel;
-use Laika\Service\Request;
 use LBM\Model\ClientStatusModel;
-use Laika\Service\Activity;
 use LBM\Model\InvoiceStatusModel;
 use LBM\Model\ClientContactModel;
 use LBM\Model\ClientServiceModel;
@@ -257,8 +258,8 @@ class Client
 
         // Validate Form
         $rules = [
-            "first_name"    =>  "required",
-            "last_name"     =>  "required",
+            "fname"         =>  "required",
+            "lname"         =>  "required",
             "username"      =>  "required|callback:has_no_client,{$username}|min:{$username_minimum_length}",
             "email"         =>  "required|email|callback:has_no_client,{$email}",
             "password"      =>  "required|min:{$password_minimum_length}|callback:validate_password,{$password}",
@@ -268,8 +269,8 @@ class Client
         ];
 
         // Set Optional Rules If Exists
-        if (Request::input('company_name')) $rules['company_name'] = "regex:/^[\w\d\s\.\&]+$/i";
-        if (Request::input('middle_name'))  $rules['middle_name'] = "alpha";
+        if (Request::input('cname'))        $rules['cname'] = "regex:/^[\w\d\s\.\&]+$/i";
+        if (Request::input('mname'))        $rules['mname'] = "alpha";
         if (Request::input('phone_code'))   $rules['phone_code'] = "regex:/^[\+\d\-]{1,4}$/";
         if (Request::input('phone_number')) $rules['phone_number'] = "regex:/^[\d\(\)\s\-]+$/";
         if (Request::input('street'))       $rules['street'] = "regex:/^[\w\s\/\,\.\#\&\-]+$/";
@@ -279,8 +280,8 @@ class Client
         if (Request::input('country'))      $rules['country'] = "in:{$countries}";
 
         $messages = [
-            'first_name.required'   =>  LANG::$requiredField,
-            'last_name.required'    =>  LANG::$requiredField,
+            'fname.required'        =>  LANG::$requiredField,
+            'lname.required'        =>  LANG::$requiredField,
             'username.required'     =>  LANG::$requiredField,
             'username.min'          =>  sprintf(LANG::$minLength, $username_minimum_length),
             'username.callback'     =>  LANG::$alreadyExists,
@@ -299,8 +300,8 @@ class Client
         ];
 
         // Set Optional Messages If Exists
-        if (Request::input('company_name')) $messages['company_name.regex'] = LANG::$invalidInput;
-        if (Request::input('middle_name'))  $messages['middle_name.alpha'] = LANG::$invalidInput;
+        if (Request::input('cname'))        $messages['cname.regex'] = LANG::$invalidInput;
+        if (Request::input('mname'))        $messages['mname.alpha'] = LANG::$invalidInput;
         if (Request::input('phone_code'))   $messages['phone_code.regex'] = LANG::$invalidPhoneCode;
         if (Request::input('phone_number')) $messages['phone_number.regex'] = LANG::$invalidPhoneNumber;
         if (Request::input('street'))       $messages['street.regex'] = LANG::$invalidInput;
@@ -319,13 +320,13 @@ class Client
         try {
             $staff = current_staff();
             $data = [
-                'company_name'      =>  (string) Request::input('company_name', ''),
-                'first_name'        =>  (string) Request::input('first_name', ''),
-                'middle_name'       =>  (string) Request::input('middle_name', ''),
-                'last_name'         =>  (string) Request::input('last_name', ''),
+                'cuid'              =>  $this->model->uid(),
+                'company_name'      =>  (string) Request::input('cname', ''),
+                'first_name'        =>  (string) Request::input('fname', ''),
+                'middle_name'       =>  (string) Request::input('mname', ''),
+                'last_name'         =>  (string) Request::input('lname', ''),
                 'email'             =>  (string) Request::input('email'),
                 'username'          =>  (string) Request::input('username'),
-                'password'          =>  (string) Vault::hashPassword(Request::input('password')),
                 'phone_cc'          =>  (string) Request::input('phone_code'),
                 'phone_number'      =>  (string) Request::input('phone_number'),
                 'street'            =>  (string) Request::input('street'),
@@ -338,21 +339,32 @@ class Client
             ];
 
             // Insert Client
-            $id = $this->model->transaction(function ($m) use ($data) {
-                return $m->insert($data);
-            });
+            try {
+                $id = $this->model->transaction(function (ClientModel $m) use ($data) {
+                    $id = (int) $m->insert($data);
+                    $pmodel = new PasswordModel();
+                    $pmodel->where(['rel_id' => $id, 'rel_type' => 'client'])->update(['revoked_at' => date('Y-m-d H:i:s')]);
+                    $pmodel->insert([
+                        'rel_id'    =>  $id,
+                        'rel_type'  =>  'client',
+                        'hash'      =>  Vault::hash(Request::input('password'))
+                    ]);
+                    return $id;
+                });
+            } catch (\Throwable $th) {
+                if (DEBUG) throw new ActionException($th->getMessage());
+            }
 
             // Insert Activity Log
             $client_href = "<a href=\"" . named('staff.client', ['client' => $id]) . "\">{$data['username']}</a>";
-            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['id']]) . "\">{$staff['id']}</a>";
-            $log = sprintf('A Note Added to Client %s by Staff %s', $client_href, $staff_href);
+            $staff_href = "<a href=\"" . named('staff.staff', ['staff' => $staff['sid']]) . "\">{$staff['sid']}</a>";
+            $log = sprintf(LANG::$newClientAddedBy, $client_href, $staff_href);
 
-            Activity::author('staff', $staff['id'])->log($log)->event('create');
-            Activity::insert();
+            Activity::author('staff', $staff['sid'])->log($log)->event('create');
 
             return response(true, LANG::$newClientAdded);
         } catch (\Throwable $th) {
-            if (DEBUG) throw new ActionException($th->getMessage());
+            if (DEBUG) throw new ActionException($th->getMessage(), 500, $th);
         }
         return response(false, LANG::$generalError);
     }

@@ -168,7 +168,7 @@ class ClientNote
 
             return response(true, LANG::$noteCreateSuccessful);
         } catch (\Throwable $th) {
-            if (DEBUG) throw new ActionException($th->getMessage());
+            if (DEBUG) throw new ActionException($th->getMessage(), 500, $th);
         }
         return response(false, LANG::$generalError);
     }

@@ -26,7 +26,7 @@ class ClientModel extends Model
     protected string $id = 'cid';
 
     /** @var string UID Column Name */
-    protected string $uid = 'uid';
+    protected string $uid = 'cuid';
 
     /** @var string Database Connection Name */
     protected string $connection = 'default';

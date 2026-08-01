@@ -145,18 +145,12 @@ function total_pages(int|string $totalRows): int
 }
 
 /**
- * Make Return
- * @param bool $status
- * @param string $message
- * @param array $data
- * @return array
- * @deprecated
+ * Validate Password
+ * @param string $password
+ * @return bool
  */
-function make_return(bool $status, string $message, array $data = []): array
+function validate_password(string $password): bool
 {
-    return [
-        'status' => $status,
-        'message' => $message,
-        'data' => $data
-    ];
+    $res = PasswordValidator::validate($password);
+    return $res['status'];
 }

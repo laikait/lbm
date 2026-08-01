@@ -18,8 +18,9 @@ namespace LBM\Pipeline\Admin;
 defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!');
 
 use Laika\Route\Interfaces\PipelineInterface;
-use Laika\Service\{Request, Redirect};
+use Laika\Service\Redirect;
 use LBM\Service\ClientNote;
+use Laika\Service\Request;
 use LBM\Service\Client;
 
 class ClientPipeline implements PipelineInterface
@@ -41,12 +42,7 @@ class ClientPipeline implements PipelineInterface
         };
 
         // Set Alert If Has Message
-        if (is_array($res)) {
-            if ($res['success']) {
-                Redirect::with($res['message'], $res['success'])->back();
-            }
-            alert_set($res['message'], $res['success']);
-        }
+        if (is_array($res)) alert_set($res['message'], $res['status']);
 
         return $next();
     }

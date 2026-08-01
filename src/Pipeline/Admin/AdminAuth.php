@@ -46,7 +46,7 @@ class AdminAuth implements PipelineInterface
     {
         $token = Session::get(ADMIN . '_token', for:ADMIN);
 
-        $info = $this->guard->validateToken($token, (int) option('login_lifetime', '3600'), option_bool('strict_ip'));
+        $info = $this->guard->validateToken($token, (int) option('login_lifetime', 3600), option_bool('strict_ip'));
 
         if (match_url('staff.login')) {
 
@@ -80,14 +80,6 @@ class AdminAuth implements PipelineInterface
     {
         if (!Request::isPost()) return false;
 
-        // Validate CSRF
-        try {
-            CSRF::validate(Request::input('_csrf'));
-        } catch (\Throwable $th) {
-            alert_set(LANG::$invalidCsrf, false);
-            return false;
-        }
-
         // Process Login
         $rules = [
             'username'  =>  'required',
@@ -109,7 +101,7 @@ class AdminAuth implements PipelineInterface
         $sm = new StaffModel();
         $pm = new PasswordModel();
 
-        $staff = $sm->select('sid')
+        $staff = $sm->select(['sid', 'first_name', 'last_name'])
                 ->whereGroup(function (StaffModel $wg) {
                     $wg->where(['username' => Request::input('username'), 'email' => Request::input('username')], '=', 'OR');
                 })
@@ -141,13 +133,15 @@ class AdminAuth implements PipelineInterface
 
         try {
             // Issue Token
-            $res = $this->guard->issueToken($staff['sid']);
+            $res = $this->guard->issueToken($staff['sid'], (int) option('login_lifetime', '3600'));
             // Set Session Token
             Session::set(ADMIN . '_token', $res['token'], ADMIN);
         } catch (\Throwable $th) {
             if (DEBUG) throw $th;
             return false;
         }
+
+        alert_set(sprintf(LANG::$welcome, $staff['first_name']), true);
 
         return true;
     }

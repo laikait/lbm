@@ -24,7 +24,7 @@ class ClientSchema extends SchemaAbstract
     {
         Schema::on($this->connection)->createIfNotExists($this->table, function (Blueprint $t) {
             $t->bigId('cid');
-            $t->uid('uid');
+            $t->uid('cuid');
             $t->string('company_name')->nullable()->default(NULL);
             $t->string('first_name', 80);
             $t->string('middle_name', 80)->nullable()->default(NULL);

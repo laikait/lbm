@@ -20,11 +20,14 @@ defined('APP_PATH') || http_response_code(403) . die('403 Direct Access Denied!'
 use Laika\Service\Url;
 use Laika\Service\Date;
 use Laika\Service\CSRF;
+use Laika\Service\CORS;
 use Laika\Service\Init;
 use Laika\Service\Local;
+use Laika\Service\Request;
 use Laika\Model\Connection;
 use Laika\Session\SessionManager;
 use Laika\Route\Interfaces\PipelineInterface;
+use LANG;
 
 class InitPipeline implements PipelineInterface
 {
@@ -64,6 +67,16 @@ class InitPipeline implements PipelineInterface
             default:
                 Local::load();
                 break;
+        }
+
+        // Validate CSRF
+        if (Request::isPost()) {
+            try {
+                CSRF::validate(CSRF::fromRequest());
+            } catch (\Throwable $th) {
+                alert_set(LANG::$invalidCsrf, false);
+                return $next(false);
+            }
         }
 
         return $next();
