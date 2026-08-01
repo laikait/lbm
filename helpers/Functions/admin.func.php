@@ -10,8 +10,10 @@
 
 declare(strict_types=1);
 
+use LBM\Model\StaffRoleModel;
+use Laika\Auth\AuthManager;
+use Laika\Session\Session;
 use Laika\Service\Request;
-use Laika\Service\Auth;
 
 /*=============================== ADMIN INFO ===============================*/
 /**
@@ -20,8 +22,15 @@ use Laika\Service\Auth;
  */
 function current_staff(): ?array
 {
-    Auth::guard('staff');
-    return Auth::user();
+    static $staff = null;
+
+    if ($staff === null) {
+        $guard = (new AuthManager(config('auth')))->guard('staff');
+        $token = Session::get(ADMIN . '_token', for:ADMIN);
+
+        $staff = $guard->validateToken($token, (int) option('login_lifetime', '3600'), option_bool('strict_ip'));
+    }
+    return $staff;
 }
 
 /*================================= ACCESS =================================*/
@@ -32,24 +41,24 @@ function current_staff(): ?array
  */
 function staff_has_access(string $access): bool
 {
-    static $accesses = [];
-    $key = strtolower($access);
+    static $accesses = null;
 
     // Validate Parameter
-    if (!preg_match('/^\w+\.\w+$/i', $key)) {
+    if (!preg_match('/^[a-z]+\.[a-z]+$/i', $access)) {
         throw new InvalidArgumentException("Invalid Parameter [{$access}] in Function " . __FUNCTION__ . ". Example: 'staff.create'");
     }
 
-    if (!array_key_exists($key, $accesses)) {
+    [$key, $action] = explode('.', $access, 2);
 
-        [$name, $action] = explode('.', $key, 2);
-
-        $user = current_staff();
-
-        $accesses[$key] = $user['permissions'][$name][$action] ?? false;
+    if ($accesses === null) {
+        $m = new StaffRoleModel();
+        $accesses = $m->select('permissions')->find(current_staff()['role_relid'])['permissions'];
     }
 
-    return $accesses[$key];
+    if (isset($accesses[$key]) && is_array($accesses[$key])) {
+        return $accesses[$key][$action] ?? false;
+    }
+    return false;
 }
 
 /**

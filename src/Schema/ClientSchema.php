@@ -46,6 +46,7 @@ class ClientSchema extends SchemaAbstract
             $t->string('tax_id')->nullable()->default(NULL)->comment('VAT / GST / EIN etc');
             $t->timestamp('last_login_at')->nullable()->default(null);
             $t->string('last_login_ip', 100)->nullable()->default(null);
+            $t->enum('is_restricted', ['yes', 'no'])->default('no');
             $t->timestamps('client_created_at', 'client_updated_at');
 
             $t->index('first_name');
@@ -55,6 +56,7 @@ class ClientSchema extends SchemaAbstract
             $t->index('country_relid');
             $t->index('currency_relid');
             $t->index('status_relid');
+            $t->index('is_restricted');
             $t->index('client_created_at');
             $t->index('client_updated_at');
         });

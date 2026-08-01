@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Laika PHP MVC Framework
  * Author: Showket Ahmed
@@ -29,7 +28,7 @@ use Laika\Service\Vault;
 use Laika\Service\CSRF;
 use LANG;
 
-class Auth implements PipelineInterface
+class AdminAuth implements PipelineInterface
 {
     /** @var TokenGuard */
     protected TokenGuard $guard;
@@ -111,7 +110,10 @@ class Auth implements PipelineInterface
         $pm = new PasswordModel();
 
         $staff = $sm->select('sid')
-                ->where(['username' => Request::input('username'), 'username' => Request::input('username')], '=', 'OR')
+                ->whereGroup(function (StaffModel $wg) {
+                    $wg->where(['username' => Request::input('username'), 'email' => Request::input('username')], '=', 'OR');
+                })
+                ->where(['is_restricted' => 'no'])
                 ->first();
 
         // Check Staff Exists

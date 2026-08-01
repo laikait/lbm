@@ -33,10 +33,11 @@ class StaffSchema extends SchemaAbstract
             $t->string('last_name', 80);
             $t->string('username', 80)->nullable()->default(NULL);
             $t->string('email');
+            $t->unsignedInteger('status_relid')->comment('staff_statuses -> status_id');
             $t->string('two_factor_secret')->nullable()->default(null);
             $t->timestamp('last_login_at')->nullable()->default(null);
             $t->string('last_login_ip', 100)->nullable()->default(null);
-            $t->unsignedInteger('status_relid')->comment('staff_statuses -> status_id');
+            $t->enum('is_restricted', ['yes', 'no'])->default('no');
             $t->timestamps('staff_created_at', 'staff_updated_at');
 
             // Indexes
@@ -44,8 +45,8 @@ class StaffSchema extends SchemaAbstract
             $t->unique('email');
             $t->index('role_relid');
             $t->index('status_relid');
+            $t->index('is_restricted');
             $t->index('staff_created_at');
-            $t->index('staff_updated_at');
         });
     }
 

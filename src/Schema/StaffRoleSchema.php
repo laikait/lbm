@@ -27,13 +27,12 @@ class StaffRoleSchema extends SchemaAbstract
         Schema::on()->createIfNotExists('staff_roles', function (Blueprint $t) {
             $t->id('role_id');
             $t->string('role_name', 50)->comment('Role Name');
-            $t->serialize('permissions')->comment('Serialized Data');
+            $t->json('permissions')->comment('JSON Data');
             $t->timestamps('role_created_at', 'role_updated_at');
 
             // Indexes
             $t->index('role_name');
             $t->index('role_created_at');
-            $t->index('role_updated_at');
         });
     }
 
@@ -60,7 +59,7 @@ class StaffRoleSchema extends SchemaAbstract
             ];
             $role = [
                 'role_name' => 'superadmin',
-                'permissions' => serialize($permissions)
+                'permissions' => json_encode($permissions, JSON_PRETTY_PRINT)
             ];
             try {
                 $m->insert($role);

@@ -11,9 +11,11 @@
 
 declare(strict_types=1);
 
-// use LBM\Support\Option;
-use Laika\Service\{Math, Date, Url};
-use LBM\Service\{Currency, PasswordValidator};
+use Laika\Service\Url;
+use Laika\Service\Math;
+use Laika\Service\Date;
+use LBM\Service\Currency;
+use LBM\Service\PasswordValidator;
 
 
 /**
@@ -120,15 +122,6 @@ function app_uri()
     return option('app_host', Url::base());
 };
 
-// /**
-//  * Get App Name
-//  * @return string
-//  */
-// function app_name()
-// {
-//     return option('app_name', 'Laika Bill Manager');
-// };
-
 /**
  * Get Data Limit
  * @param ?int $default = null
@@ -149,17 +142,6 @@ function total_pages(int|string $totalRows): int
 {
     $totalRows = (int) $totalRows;
     return $totalRows > data_limit() ? (int) ceil($totalRows / data_limit()) : 1;
-}
-
-/**
- * Validate Password
- * @param string $password
- * @return bool
- */
-function validate_password(string $password): bool
-{
-    $res = PasswordValidator::validate($password);
-    return $res['status'];
 }
 
 /**

@@ -20,9 +20,6 @@ add_hook('option_int', 'option_int', 1000);
 /** Get App DB Option as Bool */
 add_hook('option_bool', 'option_bool', 1000);
 
-/** Check Pawword is Valid */
-add_hook('validate_password', 'validate_password', 1000);
-
 /*============================= APP HOOKS =============================*/
 /** Get App Host */
 add_hook('app_host', 'app_uri', 1000);

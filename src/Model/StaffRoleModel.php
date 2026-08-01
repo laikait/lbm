@@ -38,7 +38,7 @@ class StaffRoleModel extends Model
     protected string $deletedAtColumn = 'deleted_at';
 
     // Cast Columns
-    protected array $casts = ['permissions' => 'serialize']; // Example: ['col_1' => 'int', 'col_2' => 'string', ....]
+    protected array $casts = ['permissions' => 'json']; // Example: ['col_1' => 'int', 'col_2' => 'string', ....]
 
     // Start Code From Here
 }
